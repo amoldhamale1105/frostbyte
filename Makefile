@@ -10,7 +10,7 @@ SRC_DIR := .
 INCLUDES := -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
-OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o
+OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/uart.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
@@ -24,8 +24,8 @@ clean:
 	rm -f $(BUILD_DIR)/*
 	rm -f $(OUTPUT_DIR)/*
 
-$(BUILD_DIR)/boot.o : $(SRC_DIR)/boot.s
-	$(CC) -c $< -o $@
+$(BUILD_DIR)/%.o : $(SRC_DIR)/%.s
+	$(CC) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
