@@ -15,7 +15,15 @@ end:
 
 kernel_entry:
     # initialising stack pointer to 0x80000 which will then grow downwards from there
-    mov sp, #0x80000      
+    mov sp, #0x80000
+    # Load start address of bss in register x0 and end address in x1
+    ldr x0, =bss_start
+    ldr x1, =bss_end
+    # Save size in x2 and value 0 in x1, call memset and initialize bss segment with 0
+    sub x2, x1, x0
+    mov x1, #0
+    bl memset
+
     bl kmain
     # Nothing to do after control returns from kernel main
     b end               
