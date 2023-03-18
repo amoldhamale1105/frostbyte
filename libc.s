@@ -5,6 +5,14 @@
 .global memcpy
 .global memmove
 .global memcmp
+.global get_el
+
+get_el:
+    # Read the currentel system register for current exception level (ELO-EL3) and save it in x0 register
+    mrs x0, currentel
+    # Right shift x0 by 2 bits because our data lies at bit 2 and 3
+    lsr x0, x0, #2
+    ret
 
 delay:
     # First arg will be present in register x0 which will be subtracted till it becomes 0

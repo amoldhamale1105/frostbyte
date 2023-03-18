@@ -1,11 +1,12 @@
 #include "uart.h"
 #include "print.h"
 #include "debug.h"
+#include "libc.h"
 
 void kmain(void)
 {
     init_uart();
     printk("Welcome to Pious (An OS built for the Raspberry Pi 3b)\n");
-    ASSERT(0);
-    while(1);
+    printk("Current exception level is EL%u\n", (uint64_t)get_el());
+    while(1); 
 }

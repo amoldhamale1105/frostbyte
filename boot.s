@@ -14,6 +14,31 @@ end:
     b end               
 
 kernel_entry:
+    # Get the current exception/execution level
+    mrs x0, currentel
+    lsr x0, x0, #2
+    cmp x0, #2
+    # If the exception level is not 2 in the beginning, branch to end
+    bne end
+
+    # Set system control register sctlr_el1 with 0 using the zero register xzr
+    msr sctlr_el1, xzr
+    # Set bit 31 of the hypervisor control register to enable Aarch64 mode
+    mov x0, #1
+    lsl x0, x0, #31
+    msr hcr_el2, x0
+
+    # Set the spsr register which will restore contents of pstate register with EL1 mode field and masked interrrupts (DAIF bits set to 1)
+    mov x0, #0b1111000101
+    msr spsr_el2, x0
+    # Set elr register to el1_entry which restores the return address on returning from the exception
+    # Get the address of e11_entry label in x0 and store it in elr register
+    adr x0, el1_entry
+    msr elr_el2, x0
+
+    eret
+
+el1_entry:
     # initialising stack pointer to 0x80000 which will then grow downwards from there
     mov sp, #0x80000
     # Load start address of bss in register x0 and end address in x1
