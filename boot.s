@@ -49,6 +49,10 @@ el1_entry:
     mov x1, #0
     bl memset
 
+    # Load the interrupt vector table address in vector base address register for the processor to locate it when exception occurs
+    ldr x0, =vector_table
+    msr vbar_el1, x0
+
     bl kmain
     # Nothing to do after control returns from kernel main
     b end               
