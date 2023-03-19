@@ -2,6 +2,7 @@
 #include "print.h"
 #include "debug.h"
 #include "libc.h"
+#include "handler.h"
 
 void kmain(void)
 {
@@ -9,11 +10,8 @@ void kmain(void)
     printk("Welcome to Pious (An OS built for the Raspberry Pi 3b)\n");
     printk("Current exception level is EL%u\n", (uint64_t)get_el());
 
-    /* Test exception handler by accessing an out of range memory address */
-    char* p = (char*)0xffff000000000000;
-    *p = 1;
-
-    printk("This message should not printed if an exception is raised for above memory access\n");
+    init_timer();
+    enable_irq();
 
     while(1);
 }
