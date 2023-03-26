@@ -54,5 +54,15 @@ el1_entry:
     msr vbar_el1, x0
 
     bl kmain
-    # Nothing to do after control returns from kernel main
+    # Switch to EL0 by setting the spsr and elr registers as in the case of EL2->EL1 transition
+    # Set the mode field of the spsr register to 0 which will be copied to pstate register on occurence of an exception
+    mov x0, #0
+    msr spsr_el1, x0
+    # Save the address of EL0 entry to elr register to be used as program counter when the exception level changes to EL0
+    adr x0, el0_entry
+    msr elr_el1, x0
+
+    eret
+
+el0_entry:
     b end               

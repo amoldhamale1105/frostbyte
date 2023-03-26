@@ -47,11 +47,11 @@ current_el_spn_serror:
 # Lower el with aarch64 handlers for EL0. These are the ones we'll use for EL0 exceptions
 .balign 0x80
 lower_el_aarch64_sync:
-    b error
+    b sync_handler
 
 .balign 0x80
 lower_el_aarch64_irq:
-    b error
+    b irq_handler
 
 .balign 0x80
 lower_el_aarch64_fiq:
@@ -103,7 +103,7 @@ sync_handler:
     # Exception ID 1 means synchronous exception
     mov x0, #1
     # Use exception syndrome register value as second arg which holds information about the current exception
-    mrs x1, esr_el1
+    mrs x1, spsr_el1//esr_el1
     # Use the link register to as third argument which holds the return address 
     mrs x2, elr_el1
     bl handler
@@ -156,7 +156,7 @@ irq_handler:
     # Exception ID 2 means hardware (asynchronous exception) interrupt
     mov x0, #2
     # Use exception syndrome register value as second arg which holds information about the current exception
-    mrs x1, esr_el1
+    mrs x1, spsr_el1//esr_el1
     # Use the link register to as third argument which holds the return address 
     mrs x2, elr_el1
     bl handler

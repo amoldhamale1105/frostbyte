@@ -14,6 +14,7 @@ static uint64_t ticks = 0;
 
 void init_interrupt_controller(void)
 {
+    /* Disable all interrupts initially to enable selectively later on */
     out_word(DISABLE_BASIC_IRQS, 0xffffffff);
     out_word(DISABLE_IRQS_1, 0xffffffff);
     out_word(DISABLE_IRQS_2, 0xffffffff);
@@ -31,7 +32,7 @@ void init_timer(void)
     out_word(CNTP_EL0, (1 << 1));
 }
 
-static void timer_interrupt_handler(void)
+static void timer_interrupt_handler(uint64_t spsr)
 {
     uint32_t status = read_timer_status();
     /* If bit 2 is set, it means the timer has fired */
@@ -39,7 +40,7 @@ static void timer_interrupt_handler(void)
         ticks++;
         /* Print every second (timer fires every 10 ms) */
         if (ticks % 100 == 0)
-            printk("Timer fired, tick count: %d \r\n", ticks);
+            printk("Timer fired, tick count: %d %x \r\n", ticks, spsr);
         set_timer_interval(timer_interval);
     }
 }
@@ -65,7 +66,7 @@ void handler(uint64_t id, uint64_t esr, uint64_t elr)
         irq = in_word(CNTP_STATUS_EL0);
         /* High bit 1 indicates timer interrupt */
         if (irq & (1 << 1))
-            timer_interrupt_handler();
+            timer_interrupt_handler(esr);
         else{
             irq = get_irq_number();
             /* Bit 19 of the interrupt pending register is for IRQ 57 i.e. UART interrupt */
