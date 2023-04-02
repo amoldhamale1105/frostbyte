@@ -1,7 +1,9 @@
 #ifndef UART_H
 #define UART_H
 
-#define IO_BASE_ADDR    0x3f200000
+#include "memory.h"
+
+#define IO_BASE_ADDR    TO_VIRT(0x3f200000)
 
 #define UART0_DR        IO_BASE_ADDR + 0x1000
 #define UART0_FR        IO_BASE_ADDR + 0x1018

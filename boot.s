@@ -41,6 +41,11 @@ kernel_entry:
 el1_entry:
     # initialising stack pointer to 0x80000 which will then grow downwards from there
     mov sp, #0x80000
+
+    # Set up paging and map kernel to the high memory address 0xFFFF000000000000 - 0xFFFFFFFFFFFFFFFF
+    bl setup_vm
+    bl enable_mmu
+
     # Load start address of bss in register x0 and end address in x1
     ldr x0, =bss_start
     ldr x1, =bss_end
@@ -53,7 +58,15 @@ el1_entry:
     ldr x0, =vector_table
     msr vbar_el1, x0
 
-    bl kmain
+    # Set the stack pointer to virtual address of kernel space
+    mov x0, #0xffff000000000000
+    add sp, sp, x0
+
+    # Get the virtual address of the kernel main function
+    ldr x0, =kmain
+    # Branch from register to kernel main
+    blr x0
+    
     # Switch to EL0 by setting the spsr and elr registers as in the case of EL2->EL1 transition
     # Set the mode field of the spsr register to 0 which will be copied to pstate register on occurence of an exception
     mov x0, #0
