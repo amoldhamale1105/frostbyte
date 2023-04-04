@@ -72,7 +72,7 @@ loop1:
 
     adr x3, pmd_ttbr1
     # To calculate the page offset with 2M page size, shift right the start address by 21 bits (2^21 = 2M)
-    # Each entry being 8 bytes, we shift left by 3 bits to get correct offset TOCLARIFY
+    # Each table entry being 8 bytes, we shift left by 3 bits to get correct offset (left shifting by 3 is equivalent to multiplying by 8)
     # Store the entry offset in x1
     lsr x1, x0, #(21 - 3)
     # Add the offset to the table address
@@ -156,7 +156,7 @@ pud_ttbr1:
 # Middle directory table. Every entry in this table points to 2M physical page
 pmd_ttbr1:
     .space 4096
-# Middle directory to map addresses above the lower 1G physical memory mark
+# Middle directory to map addresses beyomd the first 1G physical memory chunk
 pmd2_ttbr1:
     .space 4096
 
