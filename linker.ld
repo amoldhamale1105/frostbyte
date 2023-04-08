@@ -25,4 +25,6 @@ SECTIONS
         *(.bss)
         bss_end = .;
     }
+
+    kern_end = .;
 }
