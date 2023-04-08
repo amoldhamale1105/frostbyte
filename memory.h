@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#include "stdbool.h"
 
 struct Page
 {
@@ -19,6 +20,18 @@ struct Page
 
 #define ALIGN_UP(addr)      ((((uint64_t)addr + PAGE_SIZE - 1) >> 21) << 21)
 #define ALIGN_DOWN(addr)    (((uint64_t)addr >> 21) << 21)
+
+/* Translation table base register and directory tables GDT, UDT are 4k byte aligned hence bitwise AND with remaining bits will give the address of the next level table */
+#define PAGE_DIR_ENTRY_ADDR(value)      ((uint64_t)value & 0xfffffffffffff000)
+/* The middle directory table is 2M aligned (because of page size) hence the following bitmask to get the page address */
+#define PAGE_TABLE_ENTRY_ADDR(value)    ((uint64_t)value & 0xffffffffffe00000)
+
+#define ENTRY_VALID     (1 << 0)
+#define TABLE_ENTRY     (1 << 1)
+#define PAGE_ENTRY      (0 << 1)
+#define ENTRY_ACCESSED  (1 << 10)
+#define NORMAL_MEMORY   (1 << 2)
+#define DEVICE_MEMORY   (0 << 2)
 
 void* kalloc(void);
 void kfree(uint64_t addr);

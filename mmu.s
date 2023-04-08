@@ -8,6 +8,19 @@
 
 .global enable_mmu
 .global setup_vm
+.global load_gdt
+
+load_gdt:
+    # Switch to userspace translation by loading ttbr0 with user space GDT address received as first parameter
+    msr ttbr0_el1, x0
+    # Translation Lookaside Buffer is a cache of recently accessed page translations in the MMU
+    # Invalidate the translation lookaside buffer since we are switching paging from kernel to user space
+    tlbi vmalle1is
+    # (Data sync barrier) No instruction in program order executes until this instruction completes
+    dsb ish
+    # (Instruction sync barrier) Flush the pipeline in the processor so that all instructions after isb are fetched from cache or memory
+    isb
+    ret
 
 enable_mmu:
     # Save addresses of the kernel and user global tables in respective ttbr system registers
