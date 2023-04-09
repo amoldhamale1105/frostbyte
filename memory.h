@@ -15,8 +15,9 @@ struct Page
 #define TO_VIRT(physical_addr)  ((uint64_t)physical_addr + KERNEL_BASE)
 #define TO_PHY(virt_addr)       ((uint64_t)virt_addr - KERNEL_BASE)
 
-#define MEMORY_END  TO_VIRT(0X30000000)
-#define PAGE_SIZE   (2*1024*1024)
+#define MEMORY_END          TO_VIRT(0X30000000)
+#define PAGE_SIZE           (2*1024*1024)
+#define PAGE_TABLE_ENTRIES  512
 
 #define ALIGN_UP(addr)      ((((uint64_t)addr + PAGE_SIZE - 1) >> 21) << 21)
 #define ALIGN_DOWN(addr)    (((uint64_t)addr >> 21) << 21)

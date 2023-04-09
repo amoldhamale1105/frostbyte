@@ -155,6 +155,74 @@ bool map_page(uint64_t map, uint64_t virt_addr, uint64_t phy_addr, uint64_t attr
     return true;
 }
 
+void free_page(uint64_t map, uint64_t virt_addr)
+{
+    uint64_t* udt_entry = NULL;
+    unsigned int mdt_index;
+    ASSERT(virt_addr % PAGE_SIZE == 0);
+
+    udt_entry = find_udt_entry(map, virt_addr, 0, 0);
+    if (udt_entry != NULL){
+        mdt_index = (virt_addr >> 21) & 0x1ff;
+        if (udt_entry[mdt_index] & ENTRY_VALID){
+            kfree(TO_VIRT(PAGE_TABLE_ENTRY_ADDR(udt_entry[mdt_index])));
+            /* Clear the entry indicating that it is now unused */
+            udt_entry[mdt_index] = 0;
+        }
+    }
+}
+
+static void free_mdt(uint64_t map)
+{
+    uint64_t* gdt_addr = (uint64_t*)map;
+    uint64_t* udt_addr = NULL;
+
+    for(int i = 0; i < PAGE_TABLE_ENTRIES; i++)
+    {
+        if (gdt_addr[i] & ENTRY_VALID){
+            /* Retrieve the address of the upper directory table from the GDT entry */
+            udt_addr = (uint64_t*)TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_addr[i]));
+            for(int j = 0; j < PAGE_TABLE_ENTRIES; j++)
+            {
+                /* Free the middle directory table whose entry bit is valid in the upper directory table */
+                if (udt_addr[j] & ENTRY_VALID){
+                    kfree(TO_VIRT(PAGE_DIR_ENTRY_ADDR(udt_addr[j])));
+                    udt_addr[j] = 0;
+                }
+            }
+        }
+    }
+}
+
+static void free_udt(uint64_t map)
+{
+    uint64_t* gdt_addr = (uint64_t*)map;
+
+    for(int i = 0; i < PAGE_TABLE_ENTRIES; i++)
+    {
+        /* Free the upper directory table whose entry bit is valid in the global directory table */
+        if (gdt_addr[i] & ENTRY_VALID){
+            kfree(TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_addr[i])));
+            gdt_addr[i] = 0;
+        }
+    }
+}
+
+static void free_gdt(uint64_t map)
+{
+    kfree(map);
+}
+
+/* Function to free user space memory */
+void free_vm(uint64_t map)
+{
+    /* User space starts at 0x400000 */
+    free_page(map, 0x400000);
+    free_mdt(map);
+    free_udt(map);
+    free_gdt(map);
+}
+
 bool setup_uvm(void)
 {
     return false;
