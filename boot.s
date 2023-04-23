@@ -1,3 +1,6 @@
+.equ FS_BASE, 0xffff000030000000
+.equ FS_SIZE, 101*16*63*512 // Num of cylinders * num of heads * num of sectors per track * block size
+
 .section .text
 .global _start
 
@@ -46,6 +49,14 @@ el1_entry:
     bl setup_vm
     bl enable_mmu
 
+    # Use memcpy to extract and load the filesystem appended to the kernel image just after the kernel end
+    # Since bss section does have space reserved in kernel file, we extract appended fs image from bss_start
+    # Once we copy the fs in desired location, the bss segment is set up with memset in memory
+    ldr x0, =FS_BASE
+    ldr x1, =bss_start
+    ldr x2, =FS_SIZE
+    bl memcpy
+
     # Load start address of bss in register x0 and end address in x1
     ldr x0, =bss_start
     ldr x1, =bss_end
@@ -59,7 +70,7 @@ el1_entry:
     msr vbar_el1, x0
 
     # Set the stack pointer to virtual address of kernel space + 0x8000 to allow it to grow downwards from that point
-    ldr x0, =0xffff000000080000
+    mov x0, #0xffff000000000000
     add sp, sp, x0
 
     # Get the virtual address of the kernel main function

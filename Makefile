@@ -10,7 +10,8 @@ SRC_DIR := .
 INCLUDES := -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
-OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o
+OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o \
+$(BUILD_DIR)/file.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
@@ -18,6 +19,7 @@ $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 all: $(OBJS)
 	$(LINK) $(LDFLAGS) -T linker.ld -o $(OUTPUT_DIR)/pious $? 
 	$(OBJ_COPY) -O binary $(OUTPUT_DIR)/pious $(OUTPUT_DIR)/kernel8.img
+	dd if=$(SRC_DIR)/pious_disk.img >> $(OUTPUT_DIR)/kernel8.img
 
 .PHONY: clean
 clean:

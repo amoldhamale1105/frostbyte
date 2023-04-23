@@ -4,6 +4,7 @@
 #include "libc.h"
 #include "handler.h"
 #include "memory.h"
+#include "file.h"
 
 void kmain(void)
 {
@@ -12,9 +13,10 @@ void kmain(void)
     printk("Current exception level is EL%u\n", (uint64_t)get_el());
 
     init_mem();
+    init_fs();
     init_timer();
     init_interrupt_controller();
-    enable_irq();
+    //enable_irq();
 
     while(1);
 }

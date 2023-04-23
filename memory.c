@@ -239,5 +239,5 @@ void init_mem(void)
 {
     /* Free region from end of the kernel to allocated memory end for the kernel */
     free_region((uint64_t)&kern_end, MEMORY_END);
-    checkmem();
+    //checkmem();
 }
