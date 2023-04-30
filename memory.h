@@ -37,5 +37,6 @@ struct Page
 void* kalloc(void);
 void kfree(uint64_t addr);
 void init_mem(void);
+uint64_t read_gdt(void);
 
 #endif

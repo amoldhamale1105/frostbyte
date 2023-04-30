@@ -9,6 +9,11 @@
 .global enable_mmu
 .global setup_vm
 .global load_gdt
+.global read_gdt
+
+read_gdt:
+    mrs x0, ttbr0_el1
+    ret
 
 load_gdt:
     # Switch to userspace translation by loading ttbr0 with user space GDT address received as first parameter

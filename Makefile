@@ -12,7 +12,7 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 TEST_DIR := ./test
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o \
-$(BUILD_DIR)/file.o
+$(BUILD_DIR)/file.o ${BUILD_DIR}/process.o
 TEST_OBJS := $(TEST_DIR)/test.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))

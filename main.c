@@ -5,6 +5,7 @@
 #include "handler.h"
 #include "memory.h"
 #include "file.h"
+#include "process.h"
 
 /* A dummy non-zero global variable added for the kernel image to contain a data section
    TODO This can be removed once a global variable is added anywhere else in the kernel source
@@ -23,18 +24,8 @@ void kmain(void)
 
     init_mem();
     init_fs();
-
-    /* Allocate a buffer (2M page) to read file data */
-    void* buf = kalloc();
-    ASSERT(buf != NULL);
-
-    if (load_file("TEST.TXT", (uint64_t)buf) == 0){
-        printk("File data: \r\n%s\r\n", buf);
-    }
-
     init_timer();
     init_interrupt_controller();
-    //enable_irq();
-
-    while(1);
+    init_process();
+    enable_irq();
 }
