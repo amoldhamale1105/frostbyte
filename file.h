@@ -43,6 +43,10 @@ struct DirEntry {
 } __attribute__((packed));
 
 #define FS_BASE TO_VIRT(0x30000000)
+#define BYTES_PER_SECTOR 512
+#define PARTITION_ENTRY_OFFSET 0x1be
+#define LBA_OFFSET 8
+#define BPB_SECTOR_SIGNATURE 0xAA55
 #define ENTRY_EMPTY 0
 #define ENTRY_DELETED 0xe5
 

@@ -50,10 +50,11 @@ el1_entry:
     bl enable_mmu
 
     # Use memcpy to extract and load the filesystem appended to the kernel image just after the kernel end
-    # Since bss section does have space reserved in kernel file, we extract appended fs image from bss_start
+    # The bss section does not have space reserved in kernel image file on the disk and bss start can have padding
+    # We can extract the FAT16 disk image immediately after data section ends which also marks end of kernel image on disk
     # Once we copy the fs in desired location, the bss segment is set up with memset in memory
     ldr x0, =FS_BASE
-    ldr x1, =bss_start
+    ldr x1, =disk_img_end
     ldr x2, =FS_SIZE
     bl memcpy
 

@@ -6,9 +6,9 @@
 
 static struct BPB* get_fs_bpb(void)
 {
-    uint32_t lba = *(uint32_t*)(FS_BASE + 0x1be + 8);
+    uint32_t lba = *(uint32_t*)(FS_BASE + PARTITION_ENTRY_OFFSET + LBA_OFFSET);
 
-    return (struct BPB*)(FS_BASE + lba * 512);
+    return (struct BPB*)(FS_BASE + (lba * BYTES_PER_SECTOR));
 }
 
 static uint16_t *get_fat_table(void)
@@ -208,14 +208,14 @@ int load_file(char *path, uint64_t addr)
 
 void init_fs(void)
 {
-    uint8_t *p = (uint8_t*)get_fs_bpb();
+    /* Get the BIOS parameter block location in the FAT16 partition derived from LBA in partition entry */
+    uint8_t *bpb = (uint8_t*)get_fs_bpb();
+    /* Get the value of the last 2 bytes of the BIOS parameter block sector */
+    uint16_t sign = (bpb[BYTES_PER_SECTOR-1] << 8) | bpb[BYTES_PER_SECTOR-2];
     
-    if (p[0x1fe] != 0x55 || p[0x1ff] != 0xaa) {
-        printk("invalid signature\n");
+    if (BPB_SECTOR_SIGNATURE != sign) {
+        printk("Invalid FAT16 signature\n");
         ASSERT(0);
-    }
-    else {
-        printk("file system is loaded\r\n");
     }
 }
 

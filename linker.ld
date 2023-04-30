@@ -18,6 +18,7 @@ SECTIONS
     {
         *(.data)
     }
+    disk_img_end = .;
 
     .bss :
     {
