@@ -10,6 +10,7 @@ struct Process
     int pid;
     int state;
     uint64_t page_map;
+    struct ContextFrame* reg_context;
 };
 
 #define TOTAL_PROCS 10

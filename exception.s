@@ -1,3 +1,70 @@
+# Macros dealing with context and mode switch operations
+.macro kernel_entry
+    # Allocate space for 36 registers on the stack for interrupted context. We have total of 31 GPRs, 1 stack pointer register and 4 system registers
+    sub sp, sp, #(36*8)
+    # Use store pair instruction to save all 32 GPRs on the stack, 2 at a time
+    stp x0, x1, [sp]
+    # Move 16 bytes up in the stack to store the next pair (pair of 64 bit registers = 16 bytes) 
+    stp x2, x3, [sp, #(16*1)]
+    stp x4, x5, [sp, #(16*2)]
+    stp x6, x7, [sp, #(16*3)]
+    stp x8, x9, [sp, #(16*4)]
+    stp x10, x11, [sp, #(16*5)]
+    stp x12, x13, [sp, #(16*6)]
+    stp x14, x15, [sp, #(16*7)]
+    stp x16, x17, [sp, #(16*8)]
+    stp x18, x19, [sp, #(16*9)]
+    stp x20, x21, [sp, #(16*10)]
+    stp x22, x23, [sp, #(16*11)]
+    stp x24, x25, [sp, #(16*12)]
+    stp x26, x27, [sp, #(16*13)]
+    stp x28, x29, [sp, #(16*14)]
+    # Load EL0 stack pointer in x0 to be saved to the register context. Each exception level has its own dedicated stack pointer
+    mrs x0, sp_el0
+    stp x30, x0, [sp, #(16*15)]
+.endm
+
+.macro kernel_exit
+    # Load last values in x30 and x0 first so that x0 later doesn't get overwritten with the stack pointer value
+    ldp x30, x0, [sp, #(16*15)]
+    # Load x0 value to the stack pointer register
+    msr sp_el0, x0
+    ldp x0, x1, [sp]
+    ldp x2, x3, [sp, #(16*1)]
+    ldp x4, x5, [sp, #(16*2)]
+    ldp x6, x7, [sp, #(16*3)]
+    ldp x8, x9, [sp, #(16*4)]
+    ldp x2, x3, [sp, #(16*1)]
+    ldp x10, x11, [sp, #(16*5)]
+    ldp x12, x13, [sp, #(16*6)]
+    ldp x14, x15, [sp, #(16*7)]
+    ldp x16, x17, [sp, #(16*8)]
+    ldp x18, x19, [sp, #(16*9)]
+    ldp x20, x21, [sp, #(16*10)]
+    ldp x22, x23, [sp, #(16*11)]
+    ldp x24, x25, [sp, #(16*12)]
+    ldp x26, x27, [sp, #(16*13)]
+    ldp x28, x29, [sp, #(16*14)]
+
+    add sp, sp, #(36*8)
+    eret
+.endm
+
+.macro handler_entry
+    # Use exception syndrome register value as second arg which holds information about the current exception
+    mrs x1, esr_el1
+    # Save the trap number and error code on the stack as part of the context frame
+    stp x0, x1, [sp, #(16*16)]
+    # Load the link register value to x0 which holds the return address
+    mrs x0, elr_el1
+    mrs x1, spsr_el1
+    # Save the return address and pstate value to the stack as part of the context frame
+    stp x0, x1, [sp, #(16*17)]
+    # Pass the stack pointer as an argument so that the context frame can be accessed by the handler
+    mov x0, sp
+    bl handler
+.endm
+
 .section .text
 .global vector_table
 .global enable_timer
@@ -78,164 +145,36 @@ lower_el_aarch32_fiq:
 lower_el_aarch32_serror:
     b error
 
-sync_handler:
-    # Allocate space for 32 registers on the stack for interrupted context. We have total of 31 GPRs
-    sub sp, sp, #(32*8)
-    # Use store pair instruction to save all 32 GPRs on the stack, 2 at a time
-    stp x0, x1, [sp]
-    # Move 16 bytes up in the stack to store the next pair (pair of 64 bit registers = 16 bytes) 
-    stp x2, x3, [sp, #(16*1)]
-    stp x4, x5, [sp, #(16*2)]
-    stp x6, x7, [sp, #(16*3)]
-    stp x8, x9, [sp, #(16*4)]
-    stp x10, x11, [sp, #(16*5)]
-    stp x12, x13, [sp, #(16*6)]
-    stp x14, x15, [sp, #(16*7)]
-    stp x16, x17, [sp, #(16*8)]
-    stp x18, x19, [sp, #(16*9)]
-    stp x20, x21, [sp, #(16*10)]
-    stp x22, x23, [sp, #(16*11)]
-    stp x24, x25, [sp, #(16*12)]
-    stp x26, x27, [sp, #(16*13)]
-    stp x28, x29, [sp, #(16*14)]
-    str x30, [sp, #(16*15)]
+trap_return:
+    # Restore GPRs and other registers of previous context with the load pair instruction
+    # NOTE We don't need to restore trap number and error code from the stack anywhere
+    # However, the return address and pstate values need to restored in respective registers
+    ldp x0, x1, [sp, #(16*17)]
+    msr elr_el1, x0
+    msr spsr_el1, x1
 
+    kernel_exit
+
+sync_handler:
+    kernel_entry
     # Exception ID 1 means synchronous exception
     mov x0, #1
-    # Use exception syndrome register value as second arg which holds information about the current exception
-    mrs x1, spsr_el1//esr_el1
-    # Use the link register to as third argument which holds the return address 
-    mrs x2, elr_el1
-    bl handler
-
-    # Restore GPRs of previous context with the load pair instruction
-    ldp x0, x1, [sp]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x4, x5, [sp, #(16*2)]
-    ldp x6, x7, [sp, #(16*3)]
-    ldp x8, x9, [sp, #(16*4)]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x10, x11, [sp, #(16*5)]
-    ldp x12, x13, [sp, #(16*6)]
-    ldp x14, x15, [sp, #(16*7)]
-    ldp x16, x17, [sp, #(16*8)]
-    ldp x18, x19, [sp, #(16*9)]
-    ldp x20, x21, [sp, #(16*10)]
-    ldp x22, x23, [sp, #(16*11)]
-    ldp x24, x25, [sp, #(16*12)]
-    ldp x26, x27, [sp, #(16*13)]
-    ldp x28, x29, [sp, #(16*14)]
-    ldr x30, [sp, #(16*15)]
-
-    add sp, sp, #(32*8)
-
-    eret
+    handler_entry
+    b trap_return
 
 irq_handler:
-    # Allocate space for 32 registers on the stack for interrupted context. We have total of 31 GPRs
-    sub sp, sp, #(32*8)
-    # Use store pair instruction to save all 32 GPRs on the stack, 2 at a time
-    stp x0, x1, [sp]
-    # Move 16 bytes up in the stack to store the next pair (pair of 64 bit registers = 16 bytes) 
-    stp x2, x3, [sp, #(16*1)]
-    stp x4, x5, [sp, #(16*2)]
-    stp x6, x7, [sp, #(16*3)]
-    stp x8, x9, [sp, #(16*4)]
-    stp x10, x11, [sp, #(16*5)]
-    stp x12, x13, [sp, #(16*6)]
-    stp x14, x15, [sp, #(16*7)]
-    stp x16, x17, [sp, #(16*8)]
-    stp x18, x19, [sp, #(16*9)]
-    stp x20, x21, [sp, #(16*10)]
-    stp x22, x23, [sp, #(16*11)]
-    stp x24, x25, [sp, #(16*12)]
-    stp x26, x27, [sp, #(16*13)]
-    stp x28, x29, [sp, #(16*14)]
-    str x30, [sp, #(16*15)]
-
+    kernel_entry
     # Exception ID 2 means hardware (asynchronous exception) interrupt
     mov x0, #2
-    # Use exception syndrome register value as second arg which holds information about the current exception
-    mrs x1, spsr_el1//esr_el1
-    # Use the link register to as third argument which holds the return address 
-    mrs x2, elr_el1
-    bl handler
-
-    # Restore GPRs of previous context with the load pair instruction
-    ldp x0, x1, [sp]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x4, x5, [sp, #(16*2)]
-    ldp x6, x7, [sp, #(16*3)]
-    ldp x8, x9, [sp, #(16*4)]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x10, x11, [sp, #(16*5)]
-    ldp x12, x13, [sp, #(16*6)]
-    ldp x14, x15, [sp, #(16*7)]
-    ldp x16, x17, [sp, #(16*8)]
-    ldp x18, x19, [sp, #(16*9)]
-    ldp x20, x21, [sp, #(16*10)]
-    ldp x22, x23, [sp, #(16*11)]
-    ldp x24, x25, [sp, #(16*12)]
-    ldp x26, x27, [sp, #(16*13)]
-    ldp x28, x29, [sp, #(16*14)]
-    ldr x30, [sp, #(16*15)]
-
-    add sp, sp, #(32*8)
-
-    eret
+    handler_entry
+    b trap_return
 
 error:
-    # Allocate space for 32 registers on the stack for interrupted context. We have total of 31 GPRs
-    sub sp, sp, #(32*8)
-    # Use store pair instruction to save all 32 GPRs on the stack, 2 at a time
-    # In Aarch64, the stack pointer is requied to be 128 bit (16 bytes) aligned
-    stp x0, x1, [sp]
-    # Move 16 bytes up in the stack to store the next pair (pair of 64 bit registers = 16 bytes) 
-    stp x2, x3, [sp, #(16*1)]
-    stp x4, x5, [sp, #(16*2)]
-    stp x6, x7, [sp, #(16*3)]
-    stp x8, x9, [sp, #(16*4)]
-    stp x10, x11, [sp, #(16*5)]
-    stp x12, x13, [sp, #(16*6)]
-    stp x14, x15, [sp, #(16*7)]
-    stp x16, x17, [sp, #(16*8)]
-    stp x18, x19, [sp, #(16*9)]
-    stp x20, x21, [sp, #(16*10)]
-    stp x22, x23, [sp, #(16*11)]
-    stp x24, x25, [sp, #(16*12)]
-    stp x26, x27, [sp, #(16*13)]
-    stp x28, x29, [sp, #(16*14)]
-    str x30, [sp, #(16*15)]
-
+    kernel_entry
     # 0 is unknown error. Pass it as an arg to the global exception handler, handler
     mov x0, #0
-    # Global exception handler which accepts arg as the exception id
-    bl handler
-
-    # Restore GPRs of previous context with the load pair instruction
-    ldp x0, x1, [sp]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x4, x5, [sp, #(16*2)]
-    ldp x6, x7, [sp, #(16*3)]
-    ldp x8, x9, [sp, #(16*4)]
-    ldp x2, x3, [sp, #(16*1)]
-    ldp x10, x11, [sp, #(16*5)]
-    ldp x12, x13, [sp, #(16*6)]
-    ldp x14, x15, [sp, #(16*7)]
-    ldp x16, x17, [sp, #(16*8)]
-    ldp x18, x19, [sp, #(16*9)]
-    ldp x20, x21, [sp, #(16*10)]
-    ldp x22, x23, [sp, #(16*11)]
-    ldp x24, x25, [sp, #(16*12)]
-    ldp x26, x27, [sp, #(16*13)]
-    ldp x28, x29, [sp, #(16*14)]
-    ldr x30, [sp, #(16*15)]
-
-    add sp, sp, #(32*8)
-
-    # Return from exception to the previous exception level (EL0)
-    # This will load value of spsr register in pstate and elr register in program counter as return address
-    eret
+    handler_entry
+    b trap_return
 
 read_timer_freq:
     # Read the frequency of the system count from the frequency register

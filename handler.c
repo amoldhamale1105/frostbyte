@@ -3,6 +3,7 @@
 #include "libc.h"
 #include "irq.h"
 #include "uart.h"
+#include "handler.h"
 
 void enable_timer(void);
 uint32_t read_timer_status(void);
@@ -32,7 +33,7 @@ void init_timer(void)
     out_word(CNTP_EL0, (1 << 1));
 }
 
-static void timer_interrupt_handler(uint64_t spsr)
+static void timer_interrupt_handler(void)
 {
     uint32_t status = read_timer_status();
     /* If bit 2 is set, it means the timer has fired */
@@ -40,7 +41,7 @@ static void timer_interrupt_handler(uint64_t spsr)
         ticks++;
         /* Print every second (timer fires every 10 ms) */
         if (ticks % 100 == 0)
-            printk("Timer fired, tick count: %d %x \r\n", ticks, spsr);
+            printk("Timer fired, tick count: %d\r\n", ticks);
         set_timer_interval(timer_interval);
     }
 }
@@ -51,13 +52,13 @@ static uint32_t get_irq_number(void)
     return in_word(IRQ_BASIC_PENDING);
 }
 
-void handler(uint64_t id, uint64_t esr, uint64_t elr)
+void handler(struct ContextFrame* ctx)
 {
     uint32_t irq;
-    switch (id)
+    switch (ctx->trapno)
     {
     case 1:
-        printk("Sync exception at %x: %x\r\n", elr, esr);
+        printk("Sync exception at %x: %x\r\n", ctx->elr, ctx->esr);
         while(1);
         break;
     /* Hardware interrupt */
@@ -66,7 +67,7 @@ void handler(uint64_t id, uint64_t esr, uint64_t elr)
         irq = in_word(CNTP_STATUS_EL0);
         /* High bit 1 indicates timer interrupt */
         if (irq & (1 << 1))
-            timer_interrupt_handler(esr);
+            timer_interrupt_handler();
         else{
             irq = get_irq_number();
             /* Bit 19 of the interrupt pending register is for IRQ 57 i.e. UART interrupt */
