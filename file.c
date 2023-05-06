@@ -13,35 +13,17 @@ static struct BPB* get_fs_bpb(void)
 
 static uint16_t *get_fat_table(void)
 {
-    struct BPB* p = get_fs_bpb();
-    uint32_t offset = (uint32_t)p->reserved_sector_count * p->bytes_per_sector;
+    struct BPB* bpb = get_fs_bpb();
+    uint32_t offset = (uint32_t)bpb->reserved_sector_count * bpb->bytes_per_sector;
 
-    return (uint16_t *)((uint8_t*)p + offset);
+    return (uint16_t *)((uint8_t*)bpb + offset);
 }
 
-static uint16_t get_cluster_value(uint32_t cluster_index)
+static uint16_t get_next_cluster_index(uint32_t cluster_index)
 {
     uint16_t *fat_table = get_fat_table();
 
     return fat_table[cluster_index];
-}
-
-static uint32_t get_cluster_offset(uint32_t index)
-{
-    uint32_t res_size;
-    uint32_t fat_size;
-    uint32_t dir_size;
-
-    ASSERT(index >= 2);
-
-    struct BPB* p = get_fs_bpb();
-
-    res_size = (uint32_t)p->reserved_sector_count * p->bytes_per_sector;
-    fat_size = (uint32_t)p->fat_count * p->sectors_per_fat * p->bytes_per_sector;
-    dir_size = (uint32_t)p->root_entry_count * sizeof(struct DirEntry);
-
-    return res_size + fat_size + dir_size +
-        (index - 2) * ((uint32_t)p->sectors_per_cluster * p->bytes_per_sector);
 }
 
 static uint32_t get_cluster_size(void)
@@ -51,44 +33,55 @@ static uint32_t get_cluster_size(void)
     return (uint32_t)bpb->bytes_per_sector * bpb->sectors_per_cluster;
 }
 
-static uint32_t get_root_directory_count(void)
+static uint32_t get_cluster_offset(uint32_t index)
+{
+    ASSERT(index >= FAT_RESERVED_BYTES);
+
+    struct BPB* bpb = get_fs_bpb();
+
+    /* Starting from the FAT partition, calculate the size reserved for the BIOS param block */
+    uint32_t bpb_size = (uint32_t)bpb->reserved_sector_count * bpb->bytes_per_sector;
+    /* Next calculate the size occupied on disk by the file allocation table section */
+    uint32_t fat_size = (uint32_t)bpb->fat_count * bpb->sectors_per_fat * bpb->bytes_per_sector;
+    /* Finally, calculate the size occupied by the root directory section */
+    uint32_t dir_size = (uint32_t)bpb->root_entry_count * sizeof(struct DirEntry);
+
+    /* Subtract the reserved bytes in the allocation table because the first index always starts after that */
+    return bpb_size + fat_size + dir_size + (index - FAT_RESERVED_BYTES) * get_cluster_size();
+}
+
+static uint32_t get_root_dir_count(void)
 {
     struct BPB* bpb = get_fs_bpb();
 
     return bpb->root_entry_count;
 }
 
-static struct DirEntry *get_root_directory(void)
+static struct DirEntry *get_root_dir_section(void)
 {
-    struct BPB *p; 
-    uint32_t offset; 
+    struct BPB* bpb = get_fs_bpb();
+    /* Get the offset from FAT partition beginning (BIOS param block) to the root directory section */
+    uint32_t offset = (bpb->reserved_sector_count + (uint32_t)bpb->fat_count * bpb->sectors_per_fat) * bpb->bytes_per_sector;
 
-    p = get_fs_bpb();
-    offset = (p->reserved_sector_count + (uint32_t)p->fat_count * p->sectors_per_fat) * p->bytes_per_sector;
-
-    return (struct DirEntry *)((uint8_t*)p + offset);
+    return (struct DirEntry *)((uint64_t)bpb + offset);
 }
 
-static bool is_file_name_equal(struct DirEntry *dir_entry, char *name, char *ext)
+static bool file_match(struct DirEntry *dir_entry, char *name, char *ext)
 {
-    bool status = false;
-
-    if (memcmp(dir_entry->name, name, 8) == 0 &&
-        memcmp(dir_entry->ext, ext, 3) == 0) {
-        status = true;
-    }
-
-    return status;
+    return memcmp(dir_entry->name, name, MAX_FILENAME_BYTES) == 0 && memcmp(dir_entry->ext, ext, MAX_EXTNAME_BYTES) == 0;
 }
 
 static bool split_path(char *path, char *name, char *ext)
 {
     int i;
 
-    for (i = 0; i < 8 && path[i] != '.' && path[i] != '\0'; i++) {
-        if (path[i] == '/') {
+    for (i = 0; i < MAX_FILENAME_BYTES; i++)
+    {
+        if (path[i] == '.' || path[i] == '\0')
+            break;
+        /* For now, no subdirectory paths permitted */
+        if (path[i] == '/')
             return false;
-        }
 
         name[i] = path[i];
     }
@@ -96,93 +89,98 @@ static bool split_path(char *path, char *name, char *ext)
     if (path[i] == '.') {
         i++;
         
-        for (int j = 0; j < 3 && path[i] != '\0'; i++, j++) {
-            if (path[i] == '/') {
+        for (int j = 0; j < MAX_EXTNAME_BYTES; i++, j++)
+        {
+            if (path[i] == '\0')
+                break;
+            /* No subdirectories allowed */
+            if (path[i] == '/')
                 return false;
-            }
 
             ext[j] = path[i];
         }
     }
 
-    if (path[i] != '\0') {        
+    /* After filename and extension, the pathname must be null terminated */
+    if (path[i] != '\0')
         return false;
-    }
 
     return true;
 }
 
 static uint32_t search_file(char *path)
 {
-    char name[8] = {"        "};
-    char ext[3] =  {"   "};
+    char name[MAX_FILENAME_BYTES];
+    char ext[MAX_EXTNAME_BYTES];
     uint32_t root_entry_count;
-    struct DirEntry *dir_entry; 
+    struct DirEntry *dir_entry;
+    uint32_t dir_index = DIR_ENTRY_INVALID;
 
-    bool status = split_path(path, name, ext);
+    /* Initialize the buffers with spaces */
+    memset(name, CHAR_SPACE_ASCII, MAX_FILENAME_BYTES);
+    memset(ext, CHAR_SPACE_ASCII, MAX_EXTNAME_BYTES);
 
-    if (status == true) {
-        root_entry_count = get_root_directory_count();
-        dir_entry = get_root_directory();
-        
+    if (split_path(path, name, ext)) {
+        root_entry_count = get_root_dir_count();
+        dir_entry = get_root_dir_section();
+
         for (uint32_t i = 0; i < root_entry_count; i++) {
             if (dir_entry[i].name[0] == ENTRY_EMPTY || dir_entry[i].name[0] == ENTRY_DELETED)
                 continue;
 
-            if (dir_entry[i].attributes == 0xf) {
+            if (dir_entry[i].attributes == INVALID_FILETYPE)
                 continue;
-            }
 
-            if (is_file_name_equal(&dir_entry[i], name, ext)) {
-                return i;
+            if (file_match(dir_entry+i, name, ext)){
+                dir_index = i;
+                break;
             }
         }
     }
 
-    return 0xffffffff;
+    return dir_index;
 }
 
-static uint32_t read_raw_data(uint32_t cluster_index, char *buffer, uint32_t size)
+static uint32_t read_raw_data(uint32_t cluster_index, char *buf, uint32_t size)
 {
-    struct BPB* bpb;
     char *data;
     uint32_t read_size = 0;
     uint32_t cluster_size; 
     uint32_t index; 
     
-    bpb = get_fs_bpb();
+    struct BPB* bpb = get_fs_bpb();
     cluster_size = get_cluster_size();
     index = cluster_index;
 
-    if (index < 2) {
-        return 0xffffffff;
-    }
+    if (index < FAT_RESERVED_BYTES)
+        return UINT32_MAX;
     
-    while (read_size < size) {
+    while (read_size < size)
+    {
         data  = (char *)((uint64_t)bpb + get_cluster_offset(index));
-        index = get_cluster_value(index);
+        index = get_next_cluster_index(index);
         
-        if (index >= 0xfff7) {
-            memcpy(buffer, data, size - read_size);
-            read_size += size - read_size;
+        if (index == END_OF_DATA) {
+            memcpy(buf, data, size - read_size);
+            read_size += (size - read_size);
             break;
         }
 
-        memcpy(buffer, data, cluster_size);
+        memcpy(buf, data, cluster_size);
 
-        buffer += cluster_size;
+        buf += cluster_size;
         read_size += cluster_size;
     }
 
     return read_size;
 }
 
-static uint32_t read_file(uint32_t cluster_index, void *buffer, uint32_t size)
+static uint32_t read_file(uint32_t cluster_index, void *buf, uint32_t size)
 {
-    return read_raw_data(cluster_index, buffer, size);
+    return read_raw_data(cluster_index, buf, size);
 }
 
-int load_file(char *path, uint64_t addr)
+int load_file(char *path, void* addr)
 {
     uint32_t index;
     uint32_t file_size;
@@ -192,15 +190,13 @@ int load_file(char *path, uint64_t addr)
     
     index = search_file(path);
 
-    if (index != 0xffffffff) {
-        
-        dir_entry = get_root_directory();
+    if (index != DIR_ENTRY_INVALID) {
+        dir_entry = get_root_dir_section();
         file_size = dir_entry[index].file_size;
         cluster_index = dir_entry[index].cluster_index;
         
-        if (read_file(cluster_index, (void*)addr, file_size) == file_size) {
+        if (read_file(cluster_index, addr, file_size) == file_size)
             ret = 0;
-        }
     }
 
     return ret;

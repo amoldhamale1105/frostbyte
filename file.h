@@ -50,7 +50,15 @@ struct DirEntry {
 #define ENTRY_EMPTY 0
 #define ENTRY_DELETED 0xe5
 
+#define MAX_FILENAME_BYTES 8
+#define MAX_EXTNAME_BYTES 3
+#define INVALID_FILETYPE 15
+#define DIR_ENTRY_INVALID UINT32_MAX
+#define FAT_RESERVED_BYTES 2
+#define END_OF_DATA 0xffff
+#define CHAR_SPACE_ASCII 32
+
 void init_fs(void);
-int load_file(char *path, uint64_t addr);
+int load_file(char *path, void* addr);
 
 #endif
