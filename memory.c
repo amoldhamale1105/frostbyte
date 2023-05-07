@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "print.h"
 #include "libc.h"
+#include "file.h"
 
 static struct Page free_mem_head = {
     .next = NULL
@@ -217,22 +218,36 @@ static void free_gdt(uint64_t map)
 void free_vm(uint64_t map)
 {
     /* User space starts at 0x400000 */
-    free_page(map, 0x400000);
+    free_page(map, USERSPACE_BASE);
     free_mdt(map);
     free_udt(map);
     free_gdt(map);
 }
 
-bool setup_uvm(void)
+bool setup_uvm(uint64_t map, char* program_filename)
 {
+    /* Allocate memory page for userspace process */
+    void* proc_page = kalloc();
+
+    if (proc_page != NULL){
+        memset(proc_page, 0, PAGE_SIZE);
+
+        /* If the page mapping succeeds, load the file into that memory */
+        if (map_page(map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
+            if (load_file(program_filename, proc_page) == 0)
+                return true;
+        }
+    }
+
+    kfree((uint64_t)proc_page);
+    free_vm(map);
     return false;
 }
 
-bool switch_vm(uint64_t map)
+void switch_vm(uint64_t map)
 {
     /* Load the TTBR0 register with global directory table address */
     load_gdt(TO_PHY(map));
-    return false;
 }
 
 void init_mem(void)

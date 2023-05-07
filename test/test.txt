@@ -1,1 +1,0 @@
-This is a sample text file on the pious FAT16 partition

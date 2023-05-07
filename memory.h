@@ -10,7 +10,8 @@ struct Page
     struct Page* next;
 };
 
-#define KERNEL_BASE 0xffff000000000000
+#define KERNEL_BASE     0xffff000000000000
+#define USERSPACE_BASE  0x400000
 
 #define TO_VIRT(physical_addr)  ((uint64_t)physical_addr + KERNEL_BASE)
 #define TO_PHY(virt_addr)       ((uint64_t)virt_addr - KERNEL_BASE)
@@ -33,10 +34,13 @@ struct Page
 #define ENTRY_ACCESSED  (1 << 10)
 #define NORMAL_MEMORY   (1 << 2)
 #define DEVICE_MEMORY   (0 << 2)
+#define USER_MODE       (1 << 6)
 
 void* kalloc(void);
 void kfree(uint64_t addr);
 void init_mem(void);
+bool setup_uvm(uint64_t map, char* program_filename);
+void switch_vm(uint64_t map);
 uint64_t read_gdt(void);
 
 #endif

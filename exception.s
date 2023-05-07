@@ -72,6 +72,7 @@
 .global read_timer_status
 .global set_timer_interval
 .global enable_irq
+.global pstart
 
 # Align the vector table to a 2KB boundary (0x800 = 2048)
 # Aligh each handler within it to 128 byte boundary (0x80 = 128)
@@ -145,6 +146,8 @@ lower_el_aarch32_fiq:
 lower_el_aarch32_serror:
     b error
 
+pstart:
+    mov sp, x0
 trap_return:
     # Restore GPRs and other registers of previous context with the load pair instruction
     # NOTE We don't need to restore trap number and error code from the stack anywhere
