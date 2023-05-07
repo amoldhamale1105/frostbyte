@@ -4,6 +4,7 @@
 #include "irq.h"
 #include "uart.h"
 #include "handler.h"
+#include "syscall.h"
 
 void enable_timer(void);
 uint32_t read_timer_status(void);
@@ -79,7 +80,10 @@ void handler(struct ContextFrame* ctx)
             }
         }
         break;
-    
+    /* System call trap */
+    case 3:
+        system_call(ctx);
+        break;
     default:
         printk("Unknown exception\r\n");
         while(1);

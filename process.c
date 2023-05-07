@@ -82,7 +82,9 @@ void launch_process(void)
 {
     /* Switch the page tables to point to the user process memory */
     switch_vm(process_table[1].page_map);
-    /* Point the stack pointer to the context frame so that data we load there will be loaded into the registers */
+    /* Point the stack pointer to the user process context frame so that we can load those values into the registers 
+       to facilitate switching to EL0 after the eret instruction. This will be possible because in the context frame 
+       we load the elr value (return address) to userspace base address and spsr to 0 implying mode 0 for EL0 */
     pstart(process_table[1].reg_context);
 }
 

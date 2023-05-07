@@ -51,7 +51,7 @@
 .endm
 
 .macro handler_entry
-    # Use exception syndrome register value as second arg which holds information about the current exception
+    # Save exception syndrome register value in x1 which holds information about the current exception
     mrs x1, esr_el1
     # Save the trap number and error code on the stack as part of the context frame
     stp x0, x1, [sp, #(16*16)]
@@ -147,6 +147,7 @@ lower_el_aarch32_serror:
     b error
 
 pstart:
+    # Load the passed arg into stack pointer so that user context can be loaded into registers followed by switch to EL0 after eret in trap_return
     mov sp, x0
 trap_return:
     # Restore GPRs and other registers of previous context with the load pair instruction
@@ -160,8 +161,17 @@ trap_return:
 
 sync_handler:
     kernel_entry
-    # Exception ID 1 means synchronous exception
-    mov x0, #1
+    # Read the exception syndrome register to get the exception class
+    mrs x0, esr_el1
+    # Bits 26-31 in esr contain the exception class, thus we shift x0 right by 26 and store value in x1
+    lsr x1, x0, #26
+    # If the exception class value is 0x15, it is deemed as a system call
+    cmp x1, #0b010101
+    # Conditional select of value in x1 (Exception ID 1 for sync exceptions) or x3 (Exception ID 3 for system call trap) 
+    mov x1, #1
+    mov x3, #3
+    # Copy x2 in x0 if comparison above is not equal, otherwise copy x3
+    csel x0, x2, x3, ne
     handler_entry
     b trap_return
 

@@ -15,12 +15,13 @@ export KERNEL_NAME := pious
 export FAT16_DISK := $(PWD)/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
-		$(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/file.o ${BUILD_DIR}/process.o
+		$(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/file.o ${BUILD_DIR}/process.o \
+		$(BUILD_DIR)/syscall.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
-.PHONY: all mount unmount clean test programs
-all: mount kernel programs test unmount
+.PHONY: all mount unmount clean test programs lib
+all: mount kernel lib programs test unmount
 	dd if=$(FAT16_DISK) >> $(OUTPUT_DIR)/$(KERNEL_IMAGE)
 
 mount:
@@ -46,6 +47,12 @@ programs:
 
 programs_clean:
 	cd ./init && $(MAKE) clean
+
+lib:
+	cd ./lib && $(MAKE)
+
+lib_clean:
+	cd ./lib && $(MAKE) clean
 
 clean: test_clean programs_clean
 	rm -f $(BUILD_DIR)/*

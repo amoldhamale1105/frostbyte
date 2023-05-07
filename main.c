@@ -6,9 +6,9 @@
 #include "memory.h"
 #include "file.h"
 #include "process.h"
+#include "syscall.h"
 
 /* A dummy non-zero global variable added for the kernel image to contain a data section
-   TODO This can be removed once a global variable is added anywhere else in the kernel source
    In absence of data section, the image disregards the alignment padding after the rodata section for the disk image
    This results in ambiguity in the position of the FAT16 image start on the disk
    If the data section exits, the alignment padding (ALIGN(16) in linker script) will be written to disk image
@@ -24,17 +24,9 @@ void kmain(void)
 
     init_mem();
     init_fs();
-
-    /* Allocate a buffer (2M page) to read file data */
-    void* buf = kalloc();
-    ASSERT(buf != NULL);
-
-    if (load_file("DYNCAST.CPP", buf) == 0){
-        printk("File data: \r\n%s\r\n", buf);
-    }
-
+    init_system_call();
     init_timer();
     init_interrupt_controller();
-    init_process();
     enable_irq();
+    init_process();
 }
