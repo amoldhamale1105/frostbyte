@@ -73,6 +73,8 @@
 .global set_timer_interval
 .global enable_irq
 .global pstart
+.global swap
+.global trap_return
 
 # Align the vector table to a 2KB boundary (0x800 = 2048)
 # Aligh each handler within it to 128 byte boundary (0x80 = 128)
@@ -146,9 +148,6 @@ lower_el_aarch32_fiq:
 lower_el_aarch32_serror:
     b error
 
-pstart:
-    # Load the passed arg into stack pointer so that user context can be loaded into registers followed by switch to EL0 after eret in trap_return
-    mov sp, x0
 trap_return:
     # Restore GPRs and other registers of previous context with the load pair instruction
     # NOTE We don't need to restore trap number and error code from the stack anywhere
@@ -233,5 +232,36 @@ enable_irq:
     # In the pstate register, of the DAIF bits, the interrupt bit needs to cleared otherwise they will be masked
     # Write the corresponding bit (bit 2) in the daif clear register
     msr daifclr, #2
+    ret
+
+swap:
+    # Make room for 12 GPRs on the stack. Other GPRs are saved registers hence needn't be pushed to the stack during a context switch
+    sub sp, sp, #(12*8)
+    # Push the registers to the stack to be restored the next time this process gets rescheduled
+    stp x19, x20, [sp, #(16*0)]
+    stp x21, x22, [sp, #(16*1)]
+    stp x23, x24, [sp, #(16*2)]
+    stp x25, x26, [sp, #(16*3)]
+    stp x27, x28, [sp, #(16*4)]
+    stp x29, x30, [sp, #(16*5)]
+
+    # We are swapping currently running process with the new process chosen by the scheduler
+    # Thus, save the current stack pointer to the address of the process sp member provided as the first argument
+    # Then load the value passed as the second argument (sp of the new process) to the stack pointer 
+    mov x2, sp
+    str x2, [x0]
+    mov sp, x1
+
+    # Restore the context of the new process to respective registers, which it had pushed to the stack when previously yielded
+    ldp x19, x20, [sp, #(16*0)]
+    ldp x21, x22, [sp, #(16*1)]
+    ldp x22, x24, [sp, #(16*2)]
+    ldp x23, x26, [sp, #(16*3)]
+    ldp x25, x28, [sp, #(16*4)]
+    ldp x29, x30, [sp, #(16*5)]
+
+    # Reclaim used space on the stack
+    add sp, sp, #(12*8)
+
     ret
     

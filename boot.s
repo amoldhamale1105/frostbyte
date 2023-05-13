@@ -21,7 +21,7 @@ kernel_entry:
     mrs x0, currentel
     lsr x0, x0, #2
     cmp x0, #2
-    # If the exception level is not 2 in the beginning, branch to end
+    # If the exception level is not 2 (hypervisor mode) in the beginning, branch to end
     bne end
 
     # Set system control register sctlr_el1 with 0 using the zero register xzr
@@ -78,16 +78,9 @@ el1_entry:
     ldr x0, =kmain
     # Branch from register to kernel main
     blr x0
-    
-    # Switch to EL0 by setting the spsr and elr registers as in the case of EL2->EL1 transition
-    # Set the mode field of the spsr register to 0 which will be copied to pstate register on occurence of an exception
-    mov x0, #0
-    msr spsr_el1, x0
-    # Save the address of EL0 entry to elr register to be used as program counter when the exception level changes to EL0
-    adr x0, el0_entry
-    msr elr_el1, x0
 
-    eret
-
-el0_entry:
-    b end               
+idle:
+    # Wait for interrupt and suspend execution
+    # This is normally the point where the mode will switch to EL0 (userspace) on occurence of a timer interrupt
+    wfi
+    b idle

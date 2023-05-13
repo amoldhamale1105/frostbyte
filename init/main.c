@@ -3,6 +3,14 @@
 
 int main(void)
 {
-    printf("Init user process with PID %d started!\r\n", 1);
+    uint64_t sched_counter = 0;
+
+    while (1)
+    {
+        if (sched_counter % 100000000 == 0)
+            printf("Init user process with PID %d running %u\r\n", 1, sched_counter);
+        sched_counter++;
+    }
+
     return 0;
 }

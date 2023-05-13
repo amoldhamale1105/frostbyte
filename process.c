@@ -5,7 +5,7 @@
 
 static struct Process process_table[TOTAL_PROCS];
 static int pid_num = 1;
-void pstart(struct ContextFrame* ctx);
+static struct ProcessControl pc;
 
 static struct Process* find_unused_slot(void)
 {
@@ -40,6 +40,12 @@ static struct Process* alloc_new_process(void)
     process->pid = pid_num++;
     /* Get the context frame which is located at the top of the kernel stack */
     process->reg_context = (struct ContextFrame*)(process->stack + STACK_SIZE - sizeof(struct ContextFrame));
+    /* Set the stack pointer to 12 GPRs below the context frame where the userspace context is saved */
+    process->sp = (uint64_t)process->reg_context - USERSPACE_CONTEXT_SIZE;
+    /* By moving 11 registers up the stack, we reach x30 where we store address of trap_return 
+       Thus, control reaches there after executing the ret instruction in swap function
+       The return address set in the register context below will then enable trap_return to switch to EL0 correctly post an eret instruction */
+    *(uint64_t*)(REGISTER_POSITION(process->sp, 11)) = (uint64_t)trap_return;
     /* The return address should be set to the userspace base address */
     process->reg_context->elr = USERSPACE_BASE;
     /* In pious, the all regions (text, stack, data) of a process are expected to lie in the same 2M page  
@@ -67,6 +73,7 @@ static void init_idle_process(void)
     process->pid = 0;
     /* Since this is the first process of the system, page map is initialized with current val of TTBR0 register */
     process->page_map = TO_VIRT(read_gdt());
+    pc.curr_process = process;
 }
 
 static void init_user_process(void)
@@ -76,21 +83,55 @@ static void init_user_process(void)
     ASSERT(process != NULL);
 
     ASSERT(setup_uvm((uint64_t)process->page_map, "INIT.BIN"));
-}
 
-void launch_process(void)
-{
-    /* Switch the page tables to point to the user process memory */
-    switch_vm(process_table[1].page_map);
-    /* Point the stack pointer to the user process context frame so that we can load those values into the registers 
-       to facilitate switching to EL0 after the eret instruction. This will be possible because in the context frame 
-       we load the elr value (return address) to userspace base address and spsr to 0 implying mode 0 for EL0 */
-    pstart(process_table[1].reg_context);
+    process->state = READY;
+    enqueue(&pc.ready_que, (struct ProcNode*)process);
 }
 
 void init_process(void)
 {
+    pc.ready_que.head = pc.ready_que.tail = NULL;
     init_idle_process();
     init_user_process();
-    launch_process();
+}
+
+static void switch_process(struct Process* prev, struct Process* curr)
+{
+    /* Switch the page tables to point to the new user process memory */
+    switch_vm(curr->page_map);
+    /* Swap the currently running process with the new process chosen by the scheduler */
+    swap(&prev->sp, curr->sp);
+}
+
+static void schedule(void)
+{
+    struct Process* old_process = pc.curr_process;
+    struct Process* new_process;
+
+    /* In absence of other processes in the queue, the idle process will be chosen to run
+       Otherwise pick the process at the head of the ready queue */
+    new_process = empty(&pc.ready_que) ? process_table : (struct Process*)dequeue(&pc.ready_que);
+
+    new_process->state = RUNNING;
+    pc.curr_process = new_process;
+
+    switch_process(old_process, new_process);
+}
+
+void trigger_scheduler(void)
+{
+    struct Process* process;
+
+    /* Return and continue running the same process if the ready queue is empty */
+    if (empty(&pc.ready_que))
+        return;
+    /* The current process state needs to be changed from running to ready */
+    process = pc.curr_process;
+    process->state = READY;
+
+    /* The idle process (PID 0) is run by default and is also not appended to the ready queue */
+    if (process->pid != 0)
+        enqueue(&pc.ready_que, (struct ProcNode*)process);
+
+    schedule();
 }

@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "handler.h"
 #include "syscall.h"
+#include "process.h"
 
 void enable_timer(void);
 uint32_t read_timer_status(void);
@@ -12,7 +13,6 @@ void set_timer_interval(uint32_t value);
 uint32_t read_timer_freq(void);
 
 static uint32_t timer_interval = 0;
-static uint64_t ticks = 0;
 
 void init_interrupt_controller(void)
 {
@@ -37,14 +37,9 @@ void init_timer(void)
 static void timer_interrupt_handler(void)
 {
     uint32_t status = read_timer_status();
-    /* If bit 2 is set, it means the timer has fired */
-    if (status & (1 << 2)){
-        ticks++;
-        /* Print every second (timer fires every 10 ms) */
-        if (ticks % 100 == 0)
-            printk("Timer fired, tick count: %d\r\n", ticks);
+    /* If bit 2 is set, it means the timer has fired. Reset the timer with the same interval */
+    if (status & (1 << 2))
         set_timer_interval(timer_interval);
-    }
 }
 
 static uint32_t get_irq_number(void)
@@ -67,8 +62,10 @@ void handler(struct ContextFrame* ctx)
         /* Read the interrupt source register to check what kind of hardware interrupt it is */
         irq = in_word(CNTP_STATUS_EL0);
         /* High bit 1 indicates timer interrupt */
-        if (irq & (1 << 1))
+        if (irq & (1 << 1)){
             timer_interrupt_handler();
+            trigger_scheduler();
+        }
         else{
             irq = get_irq_number();
             /* Bit 19 of the interrupt pending register is for IRQ 57 i.e. UART interrupt */
