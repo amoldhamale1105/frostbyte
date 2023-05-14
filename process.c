@@ -44,7 +44,8 @@ static struct Process* alloc_new_process(void)
     process->sp = (uint64_t)process->reg_context - USERSPACE_CONTEXT_SIZE;
     /* By moving 11 registers up the stack, we reach location of register x30 where we store address of trap_return 
        Since return addresses are stored in x30 in aarch64, control reaches there after executing the ret instruction in swap function
-       The elr and spsr address set in the register context below will then enable trap_return to switch to EL0 correctly post an eret instruction */
+       The elr and spsr address set in the register context below will then enable trap_return to switch to EL0 correctly post an eret instruction
+       NOTE This is only applicable to the first run. In subsequent runs, the process will resume execution from the point of interruption */
     *(uint64_t*)(REGISTER_POSITION(process->sp, 11)) = (uint64_t)trap_return;
     /* The return address should be set to the userspace base address */
     process->reg_context->elr = USERSPACE_BASE;
@@ -101,6 +102,11 @@ static void switch_process(struct Process* prev, struct Process* curr)
     switch_vm(curr->page_map);
     /* Swap the currently running process with the new process chosen by the scheduler */
     swap(&prev->sp, curr->sp);
+    /* The previous process will resume execution here once swapped in unless it's the first time it's running
+       In the first run, x30 will point to trap_return. In subsequent scheduling cycles, the return address will point here
+       User processes will have this address in x30 and won't be overwritten with trap_return address in subsequent cycles
+       The idle process (PID 0) will always resume here even the first time because there's no redirection defined to trap_return for it
+       The rationale is that idle process always runs in kernel space i.e. EL1 not in userspace unlike other processes */
 }
 
 static void schedule(void)

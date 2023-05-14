@@ -82,5 +82,6 @@ el1_entry:
 idle:
     # Wait for interrupt and suspend execution
     # This is normally the point where the mode will switch to EL0 (userspace) on occurence of a timer interrupt
+    # The idle process (PID 0) when running, resumes here when it finishes servicing outstanding interrupts
     wfi
     b idle
