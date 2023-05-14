@@ -12,5 +12,6 @@ char* itoa(int);
 char* uitoa(uint32_t);
 char* xtoa(uint64_t);
 int writeu(char* buf, int buf_size);
+void sleepu(uint64_t ticks_10ms);
 
 #endif

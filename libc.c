@@ -1,32 +1,58 @@
 #include "libc.h"
 #include "stddef.h"
+#include "process.h"
 
-void enqueue(struct ReadyQue *que, struct ProcNode *pnode)
+void push_back(struct List *list, struct Node *node)
 {
-    if (que->head == NULL){
-        que->head = que->tail = pnode;
-        pnode->next = NULL;
+    if (list->head == NULL){
+        list->head = list->tail = node;
+        node->next = NULL;
         return;
     }
 
-    que->tail->next = pnode;
-    pnode->next = NULL;
-    que->tail = pnode;
+    list->tail->next = node;
+    node->next = NULL;
+    list->tail = node;
 }
 
-struct ProcNode *dequeue(struct ReadyQue *que)
+struct Node *pop_front(struct List *list)
 {
-    struct ProcNode* node = NULL;
+    struct Node* node = NULL;
 
-    if (que->head != NULL){
-        node = que->head;
-        que->head = node->next;
+    if (list->head != NULL){
+        node = list->head;
+        list->head = node->next;
     }
 
     return node;
 }
 
-bool empty(struct ReadyQue *que)
+struct Node *remove(struct List *list, int event)
 {
-    return que->head == NULL;
+    struct Node* node = list->head;
+    struct Node* prev = NULL;
+
+    while (node != NULL)
+    {
+        if (((struct Process*)node)->event == event){
+            if (prev == NULL)
+                list->head = node->next;
+            else
+                prev->next = node->next;
+
+            if (node->next == NULL)
+                list->tail = prev;
+            
+            break;
+        }
+        prev = node;
+        node = node->next;
+    }
+    
+    return node;
+}
+
+bool empty(struct List *list)
+{
+    return list->head == NULL;
 }

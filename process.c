@@ -85,7 +85,7 @@ static void init_user_process(void)
     ASSERT(setup_uvm((uint64_t)process->page_map, "INIT.BIN"));
 
     process->state = READY;
-    enqueue(&pc.ready_que, (struct ProcNode*)process);
+    push_back(&pc.ready_que, (struct Node*)process);
 }
 
 void init_process(void)
@@ -110,7 +110,7 @@ static void schedule(void)
 
     /* In absence of other processes in the queue, the idle process will be chosen to run
        Otherwise pick the process at the head of the ready queue */
-    new_process = empty(&pc.ready_que) ? process_table : (struct Process*)dequeue(&pc.ready_que);
+    new_process = empty(&pc.ready_que) ? process_table : (struct Process*)pop_front(&pc.ready_que);
 
     new_process->state = RUNNING;
     pc.curr_process = new_process;
@@ -131,7 +131,38 @@ void trigger_scheduler(void)
 
     /* The idle process (PID 0) is run by default and is also not appended to the ready queue */
     if (process->pid != 0)
-        enqueue(&pc.ready_que, (struct ProcNode*)process);
+        push_back(&pc.ready_que, (struct Node*)process);
 
     schedule();
+}
+
+void sleep(int event)
+{
+    struct Process* process;
+
+    process = pc.curr_process;
+    process->state = SLEEP;
+    /* Save the reason of wait which can used in wake_up to selectively wake up processes based on occurred events */
+    process->event = event;
+
+    /* Enqueue the process on the wait list so that it cannnot be rescheduled until woken up and placed on ready queue */
+    push_back(&pc.wait_list, (struct Node*)process);
+    /* Call the scheduler to replace the current process (which just slept) with other process on the ready queue */
+    schedule();
+}
+
+void wake_up(int event)
+{
+    struct Process* process;
+
+    /* remove first process waiting on event from the wait list */
+    process = (struct Process*)remove(&pc.wait_list, event);
+    /* Place it on the ready queue and check if any other processes waiting on the same event
+       If they're sleeping, remove from wait list and place them on the ready queue as well */
+    while (process != NULL)
+    {
+        process->state = READY;
+        push_back(&pc.ready_que, (struct Node*)process);
+        process = (struct Process*)remove(&pc.wait_list, event);
+    }
 }

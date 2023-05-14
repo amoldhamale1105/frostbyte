@@ -13,6 +13,7 @@ void set_timer_interval(uint32_t value);
 uint32_t read_timer_freq(void);
 
 static uint32_t timer_interval = 0;
+static uint64_t ticks = 0;
 
 void init_interrupt_controller(void)
 {
@@ -23,6 +24,12 @@ void init_interrupt_controller(void)
 
     /* Set bit 25 in intr enable register 2 to enable IRQ 57 of UART */
     out_word(ENABLE_IRQS_2, (1 << 25));
+}
+
+/* Tick interval = 10 ms */
+uint64_t get_ticks(void)
+{
+    return ticks;
 }
 
 void init_timer(void)
@@ -38,8 +45,11 @@ static void timer_interrupt_handler(void)
 {
     uint32_t status = read_timer_status();
     /* If bit 2 is set, it means the timer has fired. Reset the timer with the same interval */
-    if (status & (1 << 2))
+    if (status & (1 << 2)){
+        ticks++;
+        wake_up(SLEEP_SYSCALL);
         set_timer_interval(timer_interval);
+    }
 }
 
 static uint32_t get_irq_number(void)

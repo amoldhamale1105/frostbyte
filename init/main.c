@@ -7,9 +7,9 @@ int main(void)
 
     while (1)
     {
-        if (sched_counter % 100000000 == 0)
-            printf("Init user process with PID %d running %u\r\n", 1, sched_counter);
-        sched_counter++;
+        printf("Init user process with PID %d running %u\r\n", 1, sched_counter++);
+        /* This should sleep for 1 second given that 1 tick = 10 ms */
+        sleepu(100);
     }
 
     return 0;

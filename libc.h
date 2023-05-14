@@ -4,15 +4,15 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-struct ProcNode
+struct Node
 {
-    struct ProcNode* next;
+    struct Node* next;
 };
 
-struct ReadyQue
+struct List
 {
-    struct ProcNode* head;
-    struct ProcNode* tail;
+    struct Node* head;
+    struct Node* tail;
 };
 
 unsigned char get_el(void);
@@ -25,8 +25,10 @@ void memcpy(void* dst, void* src, unsigned int size);
 void memmove(void* dst, void* src, unsigned int size);
 int memcmp(void* src1, void* src2, unsigned int size);
 
-void enqueue(struct ReadyQue* que, struct ProcNode* pnode);
-struct ProcNode* dequeue(struct ReadyQue* que);
-bool empty(struct ReadyQue* que);
+void push_back(struct List* list, struct Node* node);
+struct Node* pop_front(struct List* list);
+/* Special function for the sleep and wakeup implementation */
+struct Node* remove(struct List* list, int event);
+bool empty(struct List* list);
 
 #endif

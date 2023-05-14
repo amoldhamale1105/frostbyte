@@ -3,6 +3,8 @@
 #include "uart.h"
 #include "debug.h"
 #include "stddef.h"
+#include "handler.h"
+#include "process.h"
 
 static SYSTEMCALL syscall_list[TOTAL_SYSCALL_FUNCTIONS];
 
@@ -14,9 +16,27 @@ static int sys_write(int64_t *arg)
     return (int)arg[1];
 }
 
+static int sys_sleep(int64_t* arg)
+{
+    uint64_t ticks = get_ticks();
+    uint64_t sleep_ticks = arg[0];
+
+    uint64_t target_ticks = ticks + sleep_ticks;
+
+    /* Put the process to sleep at every tick until the sleep duration has elapsed */
+    while (ticks < target_ticks)
+    {
+        sleep(SLEEP_SYSCALL);
+        ticks = get_ticks();
+    }
+
+    return 0;
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
+    syscall_list[1] = sys_sleep;
 }
 
 void system_call(struct ContextFrame *ctx)
@@ -30,7 +50,7 @@ void system_call(struct ContextFrame *ctx)
     int64_t* arg = (int64_t*)ctx->x1;
 
     /* If not a valid syscall, return an error code -1 */
-    if (argc < 0 || index != 0){
+    if (argc < 0 || (index < 0 || index > 1)){
         ctx->x0 = -1;
         return;
     }
