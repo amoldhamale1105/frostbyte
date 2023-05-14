@@ -42,9 +42,9 @@ static struct Process* alloc_new_process(void)
     process->reg_context = (struct ContextFrame*)(process->stack + STACK_SIZE - sizeof(struct ContextFrame));
     /* Set the stack pointer to 12 GPRs below the context frame where the userspace context is saved */
     process->sp = (uint64_t)process->reg_context - USERSPACE_CONTEXT_SIZE;
-    /* By moving 11 registers up the stack, we reach x30 where we store address of trap_return 
-       Thus, control reaches there after executing the ret instruction in swap function
-       The return address set in the register context below will then enable trap_return to switch to EL0 correctly post an eret instruction */
+    /* By moving 11 registers up the stack, we reach location of register x30 where we store address of trap_return 
+       Since return addresses are stored in x30 in aarch64, control reaches there after executing the ret instruction in swap function
+       The elr and spsr address set in the register context below will then enable trap_return to switch to EL0 correctly post an eret instruction */
     *(uint64_t*)(REGISTER_POSITION(process->sp, 11)) = (uint64_t)trap_return;
     /* The return address should be set to the userspace base address */
     process->reg_context->elr = USERSPACE_BASE;
