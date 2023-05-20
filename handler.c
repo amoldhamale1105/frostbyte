@@ -61,11 +61,21 @@ static uint32_t get_irq_number(void)
 void handler(struct ContextFrame* ctx)
 {
     uint32_t irq;
+    /* Whether the exception occured because of a userspace process */
+    bool user_except = ((ctx->spsr & PSTATE_MODE_MASK) == 0);
+
     switch (ctx->trapno)
     {
     case 1:
-        printk("Sync exception at %x: %x\r\n", ctx->elr, ctx->esr);
-        while(1);
+        if (user_except){
+            printk("%x: Process (PID %d) resulted in a synchronous exception. Terminating\n", ctx->elr, get_curr_process()->pid);
+            /* Although this exit call occurs in kernel space, it is meant to terminate the current user process which caused this exception */
+            exit();
+        }
+        else{
+            printk("Sync exception at %x: %x\r\n", ctx->elr, ctx->esr);
+            while(1);
+        }
         break;
     /* Hardware interrupt */
     case 2:
@@ -92,8 +102,14 @@ void handler(struct ContextFrame* ctx)
         system_call(ctx);
         break;
     default:
-        printk("Unknown exception\r\n");
-        while(1);
+        if (user_except){
+            printk("%x: Process (PID %d) resulted in an unknown exception. Terminating\n", ctx->elr, get_curr_process()->pid);
+            exit();
+        }
+        else{
+            printk("Unknown exception at %x: %x\r\n", ctx->elr, ctx->esr);
+            while(1);
+        }
         break;
     }
 }

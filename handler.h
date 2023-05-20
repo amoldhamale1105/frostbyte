@@ -43,6 +43,8 @@ struct ContextFrame
     int64_t spsr;
 };
 
+#define PSTATE_MODE_MASK 0xF /* The mode field bitmask (EL0, EL1 etc.) of pstate register */
+
 void init_timer(void);
 void enable_irq(void);
 void init_interrupt_controller(void);
