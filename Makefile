@@ -12,7 +12,7 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 export MOUNT_POINT := $(PWD)/temp
 export KERNEL_NAME := pious
-export FAT16_DISK := $(PWD)/$(KERNEL_NAME)_disk.img
+export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
 		$(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/file.o ${BUILD_DIR}/process.o \
@@ -20,8 +20,8 @@ OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc_asm.o $(BUILD_
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
-.PHONY: all mount unmount clean test programs lib
-all: mount kernel lib programs test unmount
+.PHONY: all mount unmount clean user
+all: mount kernel user unmount
 	dd if=$(FAT16_DISK) >> $(OUTPUT_DIR)/$(KERNEL_IMAGE)
 
 mount:
@@ -36,30 +36,25 @@ kernel: $(OBJS)
 	$(LINK) $(LDFLAGS) -T linker.ld -o $(OUTPUT_DIR)/$(KERNEL_NAME) $? 
 	$(OBJ_COPY) -O binary $(OUTPUT_DIR)/$(KERNEL_NAME) $(OUTPUT_DIR)/$(KERNEL_IMAGE)
 
-test:
-	cd ./test && $(MAKE)
+user:
+	cd ./user/lib && $(MAKE)
+	cd ./user/init && $(MAKE)
+	cd ./user/test && $(MAKE)
 
-test_clean:
-	cd ./test && $(MAKE) clean
+user_clean:
+	cd ./user/lib && $(MAKE) clean
+	cd ./user/init && $(MAKE) clean
+	cd ./user/test && $(MAKE) clean
 
-programs:
-	cd ./init && $(MAKE)
-
-programs_clean:
-	cd ./init && $(MAKE) clean
-
-lib:
-	cd ./lib && $(MAKE)
-
-lib_clean:
-	cd ./lib && $(MAKE) clean
-
-clean: test_clean programs_clean lib_clean
+clean: user_clean
 	rm -f $(BUILD_DIR)/*
 	rm -f $(OUTPUT_DIR)/*
 
-$(BUILD_DIR)/%.o : $(SRC_DIR)/%.s
+$(BUILD_DIR)/main.o : $(SRC_DIR)/main.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
+$(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.s
+	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@

@@ -1,12 +1,12 @@
-#include "uart.h"
-#include "print.h"
-#include "debug.h"
-#include "libc.h"
-#include "handler.h"
-#include "memory.h"
-#include "file.h"
-#include "process.h"
-#include "syscall.h"
+#include <io/uart.h>
+#include <io/print.h>
+#include <debug/debug.h>
+#include <lib/libc.h>
+#include <irq/handler.h>
+#include <memory/memory.h>
+#include <fs/file.h>
+#include <process/process.h>
+#include <irq/syscall.h>
 
 /* A dummy non-zero global variable added for the kernel image to contain a data section
    In absence of data section, the image disregards the alignment padding after the rodata section for the disk image
