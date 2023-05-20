@@ -54,7 +54,7 @@ lib:
 lib_clean:
 	cd ./lib && $(MAKE) clean
 
-clean: test_clean programs_clean
+clean: test_clean programs_clean lib_clean
 	rm -f $(BUILD_DIR)/*
 	rm -f $(OUTPUT_DIR)/*
 
