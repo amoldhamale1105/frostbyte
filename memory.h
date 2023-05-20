@@ -39,6 +39,7 @@ struct Page
 void* kalloc(void);
 void kfree(uint64_t addr);
 void init_mem(void);
+void free_vm(uint64_t map);
 bool setup_uvm(uint64_t map, char* program_filename);
 void switch_vm(uint64_t map);
 uint64_t read_gdt(void);

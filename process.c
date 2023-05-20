@@ -142,6 +142,11 @@ void trigger_scheduler(void)
     schedule();
 }
 
+struct Process *get_curr_process()
+{
+    return pc.curr_process;
+}
+
 void sleep(int event)
 {
     struct Process* process;
@@ -170,5 +175,45 @@ void wake_up(int event)
         process->state = READY;
         push_back(&pc.ready_que, (struct Node*)process);
         process = (struct Process*)remove(&pc.wait_list, event);
+    }
+}
+
+void exit(void)
+{
+    struct Process* process = pc.curr_process;
+    
+    /* Set the state to killed and event to PID for the wait function to sweep it later */
+    process->state = KILLED;
+    process->event = process->pid;
+
+    push_back(&pc.zombies, (struct Node*)process);
+
+    /* Wake up the process sleeping in wait to clean up this zombie process */
+    wake_up(ZOMBIE_CLEANUP);
+
+    schedule();
+}
+
+void wait(int pid)
+{
+    struct Process* zombie;
+
+    while (1)
+    {
+        if (!empty(&pc.zombies)){
+            zombie = (struct Process*)remove(&pc.zombies, pid);
+            if (zombie != NULL){
+                ASSERT(zombie->state == KILLED);
+                kfree(zombie->stack);
+                free_vm(zombie->page_map);
+                /* No need to clear the memory used in the process table slot used by the zombie because that will anyway be overwritten
+                   when allocating a new process. The find_unused_slot() function only cares if the state is unused or not to reallocate
+                   a particular slot, so why not save some unnecessay CPU cycles requried for memsetting the slot area to 0 */
+                zombie->state = UNUSED;
+                break;
+            }
+        }
+
+        sleep(ZOMBIE_CLEANUP);
     }
 }

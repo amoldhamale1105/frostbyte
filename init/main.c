@@ -5,7 +5,7 @@ int main(void)
 {
     uint64_t sched_counter = 0;
 
-    while (1)
+    while (sched_counter < 5)
     {
         printf("Init user process with PID %d running %u\r\n", 1, sched_counter++);
         /* This should sleep for 1 second given that 1 tick = 10 ms */

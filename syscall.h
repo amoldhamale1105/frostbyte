@@ -7,6 +7,6 @@ typedef int (*SYSTEMCALL)(int64_t *arg);
 void init_system_call(void);
 void system_call(struct ContextFrame* ctx);
 
-#define TOTAL_SYSCALL_FUNCTIONS 10
+#define TOTAL_SYSCALL_FUNCTIONS 4
 
 #endif

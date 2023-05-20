@@ -33,10 +33,24 @@ static int sys_sleep(int64_t* arg)
     return 0;
 }
 
+static int sys_exit(int64_t* arg)
+{
+    exit();
+    return 0;
+}
+
+static int sys_wait(int64_t* arg)
+{
+    wait(arg[0]);
+    return 0;
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
     syscall_list[1] = sys_sleep;
+    syscall_list[2] = sys_exit;
+    syscall_list[3] = sys_wait;
 }
 
 void system_call(struct ContextFrame *ctx)
@@ -50,7 +64,7 @@ void system_call(struct ContextFrame *ctx)
     int64_t* arg = (int64_t*)ctx->x1;
 
     /* If not a valid syscall, return an error code -1 */
-    if (argc < 0 || (index < 0 || index > 1)){
+    if (argc < 0 || (index < 0 || index > TOTAL_SYSCALL_FUNCTIONS-1)){
         ctx->x0 = -1;
         return;
     }

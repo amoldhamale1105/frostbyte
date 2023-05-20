@@ -23,6 +23,7 @@ struct ProcessControl
     struct Process* curr_process;
     struct List ready_que;
     struct List wait_list;
+    struct List zombies; /* Processes that have exited and awaiting resource cleanup */
 };
 
 #define STACK_SIZE PAGE_SIZE
@@ -32,7 +33,8 @@ struct ProcessControl
 
 enum En_SleepEvent
 {
-    SLEEP_SYSCALL = 1
+    SLEEP_SYSCALL = 1,
+    ZOMBIE_CLEANUP
 };
 
 enum En_ProcessState
@@ -41,14 +43,18 @@ enum En_ProcessState
     INIT,
     RUNNING,
     READY,
-    SLEEP
+    SLEEP,
+    KILLED
 };
 
 void init_process(void);
 void trigger_scheduler(void);
 void swap(uint64_t* prev_sp_addr, uint64_t curr_sp);
 void trap_return(void);
+struct Process* get_curr_process();
 void sleep(int event);
 void wake_up(int event);
+void exit(void);
+void wait(int pid);
 
 #endif

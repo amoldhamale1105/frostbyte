@@ -3,6 +3,5 @@
 
 _start:
     bl main
-# The following infinite loop in temporary until we implement the exit system call in the kernel
-end:
-    b end
+    # Call exit syscall once the main function returns for the process resource cleanup
+    bl exitu
