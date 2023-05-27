@@ -3,10 +3,10 @@
 
 #include <irq/handler.h>
 
-typedef int (*SYSTEMCALL)(int64_t *arg);
+typedef int64_t (*SYSTEMCALL)(int64_t *argv);
 void init_system_call(void);
 void system_call(struct ContextFrame* ctx);
 
-#define TOTAL_SYSCALL_FUNCTIONS 6
+#define TOTAL_SYSCALL_FUNCTIONS 7
 
 #endif

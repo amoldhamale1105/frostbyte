@@ -226,6 +226,11 @@ int get_inode_entry(uint32_t dir_entry_index)
     return dir_entry_index;
 }
 
+uint32_t get_file_size(struct Process* process, int fd)
+{
+    return process->fd_table[fd]->inode->file_size;
+}
+
 int open_file(struct Process* process, char* pathname)
 {
     int fd = -1;

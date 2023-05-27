@@ -12,19 +12,19 @@ int main(void)
     if (file1_fd == -1)
         printf("Failed to open file %s\n", file1);
     else
-        printf("%s file descriptor is %d\n", file1, file1_fd);
+        printf("%s file descriptor is %d, size: %u bytes\n", file1, file1_fd, get_file_size(file1_fd));
     
     int file2_fd = open_file((char*)file2);
     if (file2_fd == -1)
         printf("Failed to open file %s\n", file2);
     else
-        printf("%s file descriptor is %d\n", file2, file2_fd);
+        printf("%s file descriptor is %d, size: %u bytes\n", file2, file2_fd, get_file_size(file2_fd));
 
     int file3_fd = open_file((char*)file3);
     if (file3_fd == -1)
         printf("Failed to open file %s\n", file3);
     else
-        printf("%s file descriptor is %d\n", file3, file3_fd);
+        printf("%s file descriptor is %d, size: %u bytes\n", file3, file3_fd, get_file_size(file3_fd));
 
     while (sched_counter < 5)
     {

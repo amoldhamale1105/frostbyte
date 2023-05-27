@@ -8,7 +8,7 @@
 
 static SYSTEMCALL syscall_list[TOTAL_SYSCALL_FUNCTIONS];
 
-static int sys_write(int64_t *argv)
+static int64_t sys_write(int64_t *argv)
 {
     /* Pass the first argument on the stack which contains the pointer to the char array */
     write_string((char*)argv[0]);
@@ -16,7 +16,7 @@ static int sys_write(int64_t *argv)
     return (int)argv[1];
 }
 
-static int sys_sleep(int64_t* argv)
+static int64_t sys_sleep(int64_t* argv)
 {
     uint64_t ticks = get_ticks();
     uint64_t sleep_ticks = argv[0];
@@ -33,27 +33,32 @@ static int sys_sleep(int64_t* argv)
     return 0;
 }
 
-static int sys_exit(int64_t* argv)
+static int64_t sys_exit(int64_t* argv)
 {
     exit();
     return 0;
 }
 
-static int sys_wait(int64_t* argv)
+static int64_t sys_wait(int64_t* argv)
 {
     wait(argv[0]);
     return 0;
 }
 
-static int sys_open_file(int64_t* argv)
+static int64_t sys_open_file(int64_t* argv)
 {
     return open_file(get_curr_process(), (char*)argv[0]);
 }
 
-static int sys_close_file(int64_t* argv)
+static int64_t sys_close_file(int64_t* argv)
 {
     close_file(get_curr_process(), argv[0]);
     return 0;
+}
+
+static int64_t sys_file_size(int64_t* argv)
+{
+    return get_file_size(get_curr_process(), argv[0]);
 }
 
 void init_system_call(void)
@@ -64,6 +69,7 @@ void init_system_call(void)
     syscall_list[3] = sys_wait;
     syscall_list[4] = sys_open_file;
     syscall_list[5] = sys_close_file;
+    syscall_list[6] = sys_file_size;
 }
 
 void system_call(struct ContextFrame *ctx)
