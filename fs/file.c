@@ -4,6 +4,9 @@
 #include <lib/libc.h>
 #include <debug/debug.h>
 
+static struct Inode* inode_table;
+static struct FileEntry* global_file_table;
+
 static struct BPB* get_fs_bpb(void)
 {
     uint32_t lba = *(uint32_t*)(FS_BASE + PARTITION_ENTRY_OFFSET + LBA_OFFSET);
@@ -202,6 +205,28 @@ int load_file(char *path, void* addr)
     return ret;
 }
 
+bool init_inode_table(void)
+{
+    inode_table = (struct Inode*)kalloc();
+    if (inode_table == NULL)
+        return false;
+
+    memset(inode_table, 0, PAGE_SIZE);
+
+    return true;
+}
+
+bool init_file_table(void)
+{
+    global_file_table = (struct FileEntry*)kalloc();
+    if (global_file_table == NULL)
+        return false;
+
+    memset(global_file_table, 0, PAGE_SIZE);
+
+    return true;
+}
+
 void init_fs(void)
 {
     /* Get the BIOS parameter block location in the FAT16 partition derived from LBA in partition entry */
@@ -213,5 +238,9 @@ void init_fs(void)
         printk("Invalid FAT16 signature\n");
         ASSERT(0);
     }
+
+    /* Setup in-core inode table and global file table */
+    ASSERT(init_inode_table());
+    ASSERT(init_file_table());
 }
 

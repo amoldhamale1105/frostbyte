@@ -42,6 +42,23 @@ struct DirEntry {
     uint32_t file_size;
 } __attribute__((packed));
 
+struct Inode
+{
+    char name[8];
+    char ext[3];
+    uint32_t cluster_index;
+    uint32_t dir_index;
+    uint32_t file_size;
+    int ref_count;
+};
+
+struct FileEntry
+{
+    struct Inode* inode;
+    uint32_t offset;
+    int ref_count;
+};
+
 #define FS_BASE TO_VIRT(0x30000000)
 #define BYTES_PER_SECTOR 512
 #define PARTITION_ENTRY_OFFSET 0x1be

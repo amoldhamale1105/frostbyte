@@ -15,6 +15,7 @@ struct Process
     uint64_t sp;
     uint64_t page_map;
     uint64_t stack;
+    struct FileEntry* fd_table[100]; /* A user file desc table which contains pointers to global file table entries */
     struct ContextFrame* reg_context;
 };
 
