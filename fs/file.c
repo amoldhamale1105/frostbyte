@@ -3,6 +3,7 @@
 #include <io/print.h>
 #include <lib/libc.h>
 #include <debug/debug.h>
+#include <process/process.h>
 
 static struct Inode* inode_table;
 static struct FileEntry* global_file_table;
@@ -203,6 +204,95 @@ int load_file(char *path, void* addr)
     }
 
     return ret;
+}
+
+int get_inode_entry(uint32_t dir_entry_index)
+{
+    struct DirEntry* dir_table;
+    /* Cache the file metadata to an in core inode if it is free (ref_count == 0) */
+    if (inode_table[dir_entry_index].ref_count == 0){
+        dir_table = get_root_dir_section();
+        /* Currently we work with a paradigm where the FAT16 root dir index is used as the in core inode table index */
+        inode_table[dir_entry_index].dir_index = dir_entry_index;
+        inode_table[dir_entry_index].file_size = dir_table[dir_entry_index].file_size;
+        inode_table[dir_entry_index].cluster_index = dir_table[dir_entry_index].cluster_index;
+        memcpy(inode_table[dir_entry_index].name, dir_table[dir_entry_index].name, MAX_FILENAME_BYTES);
+        memcpy(inode_table[dir_entry_index].ext, dir_table[dir_entry_index].ext, MAX_EXTNAME_BYTES);
+    }
+
+    /* Increment the reference count of the in core inode */
+    inode_table[dir_entry_index].ref_count++;
+
+    return dir_entry_index;
+}
+
+int open_file(struct Process* process, char* pathname)
+{
+    int fd = -1;
+    int file_table_index = -1;
+    uint32_t dir_entry_index, inode_table_index;
+
+    /* Find the first free entry in the user file descriptor table of the process */
+    for(int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (process->fd_table[i] == NULL){
+            fd = i;
+            break;
+        }
+    }
+    if (fd == -1)
+        return fd;
+
+    /* Next find first free entry (entry not pointing to any inode) in the global file table */
+    for(int i = 0; i < PAGE_SIZE / sizeof(struct FileEntry); i++)
+    {
+        if (global_file_table[i].inode == NULL){
+            file_table_index = i;
+            break;
+        }
+    }
+    /* If no entry available in file table, the open operation fails */
+    if (file_table_index == -1)
+        return -1;
+
+    dir_entry_index = search_file(pathname);
+    if (DIR_ENTRY_INVALID == dir_entry_index)
+        return -1;
+
+    inode_table_index = get_inode_entry(dir_entry_index);
+    memset(global_file_table + file_table_index, 0, sizeof(struct FileEntry));
+    global_file_table[file_table_index].ref_count++;
+    /* Link the in core inode to the global file table entry */
+    global_file_table[file_table_index].inode = inode_table + inode_table_index;
+    /* Link the file table entry to the process file descriptor table */
+    process->fd_table[fd] = global_file_table + file_table_index;
+
+    return fd;
+}
+
+static void inode_put(struct Inode* inode)
+{   
+    /* The system should halt if an iput is attempted when there are no open files */
+    ASSERT(inode->ref_count > 0);
+    inode->ref_count--;
+}
+
+void close_file(struct Process* process, int fd)
+{
+    if (fd < 0)
+        return;
+    
+    /* Algorithm iput => unlink the inode by decrementing reference count */
+    inode_put(process->fd_table[fd]->inode);
+
+    /* Free the file table entry for future use */
+    process->fd_table[fd]->ref_count--;
+    /* There could be occasions like a fork system call causing file table entry to be shared by the parent with the child
+       This is different from the inode reference count which keeps a count of all open instances of a file */
+    if (process->fd_table[fd]->ref_count == 0){
+        process->fd_table[fd]->inode = NULL;
+        process->fd_table[fd] = NULL;
+    }
 }
 
 bool init_inode_table(void)

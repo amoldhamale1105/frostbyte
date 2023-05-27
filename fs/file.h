@@ -75,7 +75,11 @@ struct FileEntry
 #define END_OF_DATA 0xffff
 #define CHAR_SPACE_ASCII 32
 
+struct Process;
+
 void init_fs(void);
 int load_file(char *path, void* addr);
+int open_file(struct Process* process, char* pathname);
+void close_file(struct Process* process, int fd);
 
 #endif

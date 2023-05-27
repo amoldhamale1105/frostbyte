@@ -31,6 +31,7 @@ struct ProcessControl
 #define TOTAL_PROCS 10
 #define USERSPACE_CONTEXT_SIZE (12*8) /* 12 GPRs saved on the stack when context switch done by scheduler (see swap function) */
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */
+#define MAX_OPEN_FILES 100
 
 enum En_SleepEvent
 {
