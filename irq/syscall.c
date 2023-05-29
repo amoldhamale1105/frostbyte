@@ -61,6 +61,11 @@ static int64_t sys_file_size(int64_t* argv)
     return get_file_size(get_curr_process(), argv[0]);
 }
 
+static int64_t sys_read_file(int64_t* argv)
+{
+    return read_file(get_curr_process(), argv[0], (void*)argv[1], argv[2]);
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -70,6 +75,7 @@ void init_system_call(void)
     syscall_list[4] = sys_open_file;
     syscall_list[5] = sys_close_file;
     syscall_list[6] = sys_file_size;
+    syscall_list[7] = sys_read_file;
 }
 
 void system_call(struct ContextFrame *ctx)

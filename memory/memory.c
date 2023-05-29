@@ -3,6 +3,7 @@
 #include <io/print.h>
 #include <lib/libc.h>
 #include <fs/file.h>
+#include <process/process.h>
 
 static struct Page free_mem_head = {
     .next = NULL
@@ -224,9 +225,10 @@ void free_vm(uint64_t map)
     free_gdt(map);
 }
 
-bool setup_uvm(uint64_t map, char* program_filename)
+bool setup_uvm(struct Process* process, char* program_filename)
 {
-    /* Allocate memory page for userspace process */
+    uint64_t map = process->page_map;
+    /* Allocate memory to load the process binary. We will later map it to the userspace virtual address */
     void* proc_page = kalloc();
 
     if (proc_page != NULL){
@@ -234,11 +236,19 @@ bool setup_uvm(uint64_t map, char* program_filename)
 
         /* If the page mapping succeeds, load the file into that memory */
         if (map_page(map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
-            if (load_file(program_filename, proc_page) == 0)
-                return true;
+            int fd = open_file(process, program_filename);
+            if (fd < 0)
+                goto out;
+            uint32_t binary_size = get_file_size(process, fd);
+            /* Use the read_file function to load the process binary in the memory page allocated */
+            if (binary_size != read_file(process, fd, proc_page, binary_size))
+                goto out;
+            close_file(process, fd);
+            return true;
         }
     }
 
+out:
     kfree((uint64_t)proc_page);
     free_vm(map);
     return false;

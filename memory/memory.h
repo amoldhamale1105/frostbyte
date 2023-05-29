@@ -36,11 +36,13 @@ struct Page
 #define DEVICE_MEMORY   (0 << 2)
 #define USER_MODE       (1 << 6)
 
+struct Process;
+
 void* kalloc(void);
 void kfree(uint64_t addr);
 void init_mem(void);
 void free_vm(uint64_t map);
-bool setup_uvm(uint64_t map, char* program_filename);
+bool setup_uvm(struct Process* process, char* program_filename);
 void switch_vm(uint64_t map);
 uint64_t read_gdt(void);
 

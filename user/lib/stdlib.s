@@ -6,6 +6,7 @@
 .global open_file
 .global close_file
 .global get_file_size
+.global read_file
 
 writeu:
     # Allocate 16 bytes on the stack to accomodate the args to this function
@@ -129,4 +130,24 @@ get_file_size:
 
     # Restore the stack
     add sp, sp, #8
+    ret
+
+read_file:
+    # Allocate 24 bytes on the stack to accomodate the args to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the args on the stack beforehand
+    sub sp, sp, #24
+    stp x0, x1, [sp]
+    str x2, [sp, #16]
+    # Set the syscall index to 7 (read file) in x8
+    mov x8, #7
+    # Load the arg count in x0
+    mov x0, #3
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #24
     ret

@@ -59,6 +59,8 @@ struct FileEntry
     int ref_count;
 };
 
+#define UPPER_BOUND(x,a)    (((x)+(a-1)) & ~(a-1))
+
 #define FS_BASE TO_VIRT(0x30000000)
 #define BYTES_PER_SECTOR 512
 #define PARTITION_ENTRY_OFFSET 0x1be
@@ -78,9 +80,9 @@ struct FileEntry
 struct Process;
 
 void init_fs(void);
-int load_file(char *path, void* addr);
 int open_file(struct Process* process, char* pathname);
 void close_file(struct Process* process, int fd);
 uint32_t get_file_size(struct Process* process, int fd);
+uint32_t read_file(struct Process* process, int fd, void *buf, uint32_t size);
 
 #endif

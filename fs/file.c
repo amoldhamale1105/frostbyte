@@ -145,65 +145,68 @@ static uint32_t search_file(char *path)
     return dir_index;
 }
 
-static uint32_t read_raw_data(uint32_t cluster_index, char *buf, uint32_t size)
+static uint32_t read_raw_data(uint32_t cluster_index, char *buf, uint32_t offset, uint32_t size)
 {
     char *data;
     uint32_t read_size = 0;
-    uint32_t cluster_size; 
-    uint32_t index; 
+    uint32_t cluster_size, start_cluster;
+    uint32_t index, start_offset, copy_size, bytes_remaining;
     
     struct BPB* bpb = get_fs_bpb();
     cluster_size = get_cluster_size();
+    /* Get the starting cluster number based on the file offset */
+    start_cluster = offset / cluster_size;
     index = cluster_index;
+    while (start_cluster)
+    {
+        index = get_next_cluster_index(index);
+        start_cluster--;
+    }
 
     if (index < FAT_RESERVED_BYTES)
         return UINT32_MAX;
+
+    /* Point data to address where reading should start after calculating the offset into the chosen cluster */
+    start_offset = offset % cluster_size;
+    data  = (char *)((uint64_t)bpb + get_cluster_offset(index) + start_offset);
+    uint32_t boundary_offset = cluster_size - start_offset;
+    copy_size = size > boundary_offset ? boundary_offset : size;
     
     while (read_size < size)
     {
-        data  = (char *)((uint64_t)bpb + get_cluster_offset(index));
+        memcpy(buf, data, copy_size);
+
+        buf += copy_size;
+        read_size += copy_size;
+        bytes_remaining = size - read_size;
+        copy_size = bytes_remaining > cluster_size ? cluster_size : bytes_remaining;
+
         index = get_next_cluster_index(index);
-        
         if (index == END_OF_DATA) {
-            memcpy(buf, data, size - read_size);
-            read_size += (size - read_size);
+            memcpy(buf, data, bytes_remaining);
+            read_size += bytes_remaining;
             break;
         }
-
-        memcpy(buf, data, cluster_size);
-
-        buf += cluster_size;
-        read_size += cluster_size;
+        data  = (char *)((uint64_t)bpb + get_cluster_offset(index));
     }
 
     return read_size;
 }
 
-static uint32_t read_file(uint32_t cluster_index, void *buf, uint32_t size)
+uint32_t read_file(struct Process* process, int fd, void *buf, uint32_t size)
 {
-    return read_raw_data(cluster_index, buf, size);
-}
+    uint32_t offset = process->fd_table[fd]->offset;
+    uint32_t file_size = process->fd_table[fd]->inode->file_size;
 
-int load_file(char *path, void* addr)
-{
-    uint32_t index;
-    uint32_t file_size;
-    uint32_t cluster_index;
-    struct DirEntry *dir_entry;
-    int ret = -1;
+    /* Modify requested size if the offset from current position exceeds total file size */
+    if (offset + size > file_size)
+        size = file_size - offset;
     
-    index = search_file(path);
+    uint32_t read_size = read_raw_data(process->fd_table[fd]->inode->cluster_index, buf, offset, size);
+    /* Update the file offset in global file table entry after previous read operation */
+    process->fd_table[fd]->offset += read_size;
 
-    if (index != DIR_ENTRY_INVALID) {
-        dir_entry = get_root_dir_section();
-        file_size = dir_entry[index].file_size;
-        cluster_index = dir_entry[index].cluster_index;
-        
-        if (read_file(cluster_index, addr, file_size) == file_size)
-            ret = 0;
-    }
-
-    return ret;
+    return read_size;
 }
 
 int get_inode_entry(uint32_t dir_entry_index)
