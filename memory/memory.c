@@ -62,6 +62,9 @@ static void checkmem(void)
 
 void kfree(uint64_t addr)
 {
+    if (addr == 0)
+        return;
+    
     /* Assert that the virtual address is page aligned */
     ASSERT(addr % PAGE_SIZE == 0);
     /* Assert that the virtual address is not within kernel space */
@@ -131,7 +134,8 @@ static uint64_t* find_udt_entry(uint64_t map, uint64_t virt_addr, int alloc_new,
    @param map Global directory table address value
    @param virt_addr virtual address to be mapped
    @param phy_addr physical address mapped to
-   @param attr Memory attributes (normal or device memory) */
+   @param attr Memory attributes (normal or device memory)
+   @return true if page mapping succeeds, false otherwise */
 bool map_page(uint64_t map, uint64_t virt_addr, uint64_t phy_addr, uint64_t attr)
 {
     /* Get the beginning of the page in which this virtual address falls */
@@ -252,6 +256,49 @@ out:
     kfree((uint64_t)proc_page);
     free_vm(map);
     return false;
+}
+
+bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size)
+{
+    bool status;
+    uint64_t* mdt_table;
+    int mdt_index;
+    void* proc_page = kalloc();
+
+    if (proc_page != NULL){
+        memset(proc_page, 0, PAGE_SIZE);
+        if (map_page(dst_map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
+            /* Find the source page to copy contents to the dest page using the middle directory table
+               Note that the UDT entry is nothing but address of the MDT table according to our paging setup */
+            mdt_table = find_udt_entry(src_map, USERSPACE_BASE, 0, 0);
+            if (mdt_table == NULL){
+                status = false;
+                goto err;
+            }
+
+            /* 9 bits starting from bit 21 in the virt address signify MDT table index */
+            mdt_index = (USERSPACE_BASE >> 21) & 0x1ff;
+            /* Check if the entry is valid. If not, it means that memory does not belong to current process */
+            ASSERT((mdt_table[mdt_index] & ENTRY_VALID) == 1);
+            /* Get the physical page address of the source */
+            uint64_t src_mem = TO_VIRT(PAGE_TABLE_ENTRY_ADDR(mdt_table[mdt_index]));
+            /* Copy the source to destination */
+            memcpy(proc_page, (void*)src_mem, PAGE_SIZE);
+
+            status = true;
+            goto out;
+        }
+        else{
+            status = false;
+            goto err;
+        }
+    }
+
+err:
+    kfree((uint64_t)proc_page);
+    free_vm(dst_map);
+out:
+    return status;
 }
 
 void switch_vm(uint64_t map)

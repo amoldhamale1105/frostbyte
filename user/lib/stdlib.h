@@ -18,5 +18,7 @@ int open_file(char* filename);
 int close_file(int fd);
 uint32_t get_file_size(int fd);
 uint32_t read_file(int fd, void* buffer, uint32_t size);
+int fork(void);
+void waitu(int pid);
 
 #endif

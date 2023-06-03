@@ -27,8 +27,8 @@ static struct Process* alloc_new_process(void)
     struct Process* process;
 
     process = find_unused_slot();
-    /* Since this is the second process after the idle process, we verify that the second slot is allocated */
-    ASSERT(process == process_table+1);
+    if (process == NULL)
+        return NULL;
 
     /* Allocate memory for the kernel stack. Each process will have its own kernel stack */
     process->stack = (uint64_t)kalloc();
@@ -206,6 +206,18 @@ void wait(int pid)
                 ASSERT(zombie->state == KILLED);
                 kfree(zombie->stack);
                 free_vm(zombie->page_map);
+                /* Decrement ref counts of all files left open by the zombie */
+                for(int i = 0; i < MAX_OPEN_FILES; i++)
+                {
+                    if (zombie->fd_table[i] != NULL){
+                        zombie->fd_table[i]->ref_count--;
+                        zombie->fd_table[i]->inode->ref_count--;
+                        /* Note that we can't release the inode based on only the file entry ref count because other file entries could be pointing to it
+                           Hence the in core inode should be released (entry set to NULL) only if the inode ref count is zero */
+                        if (zombie->fd_table[i]->inode->ref_count == 0)
+                            zombie->fd_table[i]->inode = NULL;
+                    }
+                }
                 /* No need to clear the memory used in the process table slot used by the zombie because that will anyway be overwritten
                    when allocating a new process. The find_unused_slot() function only cares if the state is unused or not to reallocate
                    a particular slot, so why not save some unnecessay CPU cycles requried for memsetting the slot area to 0 */
@@ -216,4 +228,41 @@ void wait(int pid)
 
         sleep(ZOMBIE_CLEANUP);
     }
+}
+
+int fork(void)
+{
+    struct Process* process;
+
+    /* Allocate a new child process */
+    process = alloc_new_process();
+    if (process == NULL)
+        return -1;
+    
+    /* Copy the text, data, stack and other regions of the parent to the child process' memory
+       We copy only one page because the current design of the kernel holds all process regions in a single page */
+    if (!copy_uvm(process->page_map, pc.curr_process->page_map, PAGE_SIZE))
+        return -1;
+
+    /* Replicate the parent file descriptor table for the child since it shares all open files with the parent 
+       Increment the global file table entry ref count of open files. The inode ref count will be incremented as usual */
+    memcpy(process->fd_table, pc.curr_process->fd_table, MAX_OPEN_FILES * sizeof(struct FileEntry*));
+    for(int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (process->fd_table[i] != NULL){
+            process->fd_table[i]->ref_count++;
+            process->fd_table[i]->inode->ref_count++;
+        }
+    }
+
+    /* Copy the context frame so that the child process also resumes at the point after the fork call */
+    memcpy(process->reg_context, pc.curr_process->reg_context, sizeof(struct ContextFrame));
+
+    /* Set the return value for child process to 0 */
+    process->reg_context->x0 = 0;
+    process->state = READY;
+    push_back(&pc.ready_que, (struct Node*)process);
+
+    /* The parent process which called fork will be returned the child process PID */
+    return process->pid;
 }

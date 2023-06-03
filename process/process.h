@@ -58,5 +58,6 @@ void sleep(int event);
 void wake_up(int event);
 void exit(void);
 void wait(int pid);
+int fork(void);
 
 #endif

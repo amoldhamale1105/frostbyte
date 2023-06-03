@@ -7,6 +7,7 @@
 .global close_file
 .global get_file_size
 .global read_file
+.global fork
 
 writeu:
     # Allocate 16 bytes on the stack to accomodate the args to this function
@@ -150,4 +151,14 @@ read_file:
 
     # Restore the stack
     add sp, sp, #24
+    ret
+
+fork:
+    # No arguments to this syscall hence no stack space required
+    # Set the syscall index to 8 (fork) in x8
+    mov x8, #8
+    # Load the arg count in x0
+    mov x0, #0
+    # Operating system trap
+    svc #0
     ret

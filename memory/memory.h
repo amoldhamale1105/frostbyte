@@ -43,6 +43,7 @@ void kfree(uint64_t addr);
 void init_mem(void);
 void free_vm(uint64_t map);
 bool setup_uvm(struct Process* process, char* program_filename);
+bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size);
 void switch_vm(uint64_t map);
 uint64_t read_gdt(void);
 

@@ -9,6 +9,7 @@ int main(void)
     const char* file3 = "MANIFEST.XML";
     int bytes_read = 0;
     char file_data[100];
+    int pid;
 
     int file1_fd = open_file((char*)file1);
     if (file1_fd == -1)
@@ -37,9 +38,20 @@ int main(void)
         printf("%s data: (bytes read: %u)\n%s\n", file3, bytes_read, file_data);
     }
 
+    pid = fork();
+    if (pid == 0) /* Child process */
+        printf("I'm the first child of the init process!\n");
+    else if (pid == -1)
+        printf("Init process failed to fork!\n");
+    else{ /* Parent process */
+        printf("I forked the first user process of the system with PID %d\n", pid);
+        /* Wait for the child to finish and then clean up its resources once it's done */
+        waitu(pid);
+    }
+
     while (sched_counter < 5)
     {
-        printf("Init user process with PID %d running %u\r\n", 1, sched_counter++);
+        printf("User process with PID %d running %u\r\n", pid == 0 ? 2 : 1, sched_counter++);
         /* This should sleep for 1 second given that 1 tick = 10 ms */
         sleepu(100);
     }

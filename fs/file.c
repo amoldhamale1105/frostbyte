@@ -269,7 +269,8 @@ int open_file(struct Process* process, char* pathname)
 
     inode_table_index = get_inode_entry(dir_entry_index);
     memset(global_file_table + file_table_index, 0, sizeof(struct FileEntry));
-    global_file_table[file_table_index].ref_count++;
+    /* An open call will always create a new file table entry. Hence we initialize the ref count to 1 */
+    global_file_table[file_table_index].ref_count = 1;
     /* Link the in core inode to the global file table entry */
     global_file_table[file_table_index].inode = inode_table + inode_table_index;
     /* Link the file table entry to the process file descriptor table */
@@ -279,10 +280,16 @@ int open_file(struct Process* process, char* pathname)
 }
 
 static void inode_put(struct Inode* inode)
-{   
+{
+    if (inode == NULL)
+        return;
+    
     /* The system should halt if an iput is attempted when there are no open files */
     ASSERT(inode->ref_count > 0);
     inode->ref_count--;
+    /* Release the in core inode if it's not referring to any file */
+    if (inode->ref_count == 0)
+        inode = NULL;
 }
 
 void close_file(struct Process* process, int fd)
@@ -293,14 +300,13 @@ void close_file(struct Process* process, int fd)
     /* Algorithm iput => unlink the inode by decrementing reference count */
     inode_put(process->fd_table[fd]->inode);
 
-    /* Free the file table entry for future use */
+    /* Unlink the file table entry by decrementing reference count */
     process->fd_table[fd]->ref_count--;
-    /* There could be occasions like a fork system call causing file table entry to be shared by the parent with the child
-       This is different from the inode reference count which keeps a count of all open instances of a file */
-    if (process->fd_table[fd]->ref_count == 0){
-        process->fd_table[fd]->inode = NULL;
+    /* Free the file table entry if the ref count is zero. File table entry ref count may not always be zero
+       There could be occasions like a fork system call causing file table entry to be shared by the parent with the child
+       This is different from the inode reference count which keeps a count of all processes accessing a file */
+    if (process->fd_table[fd]->ref_count == 0)
         process->fd_table[fd] = NULL;
-    }
 }
 
 bool init_inode_table(void)
