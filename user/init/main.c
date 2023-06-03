@@ -40,11 +40,11 @@ int main(void)
 
     pid = fork();
     if (pid == 0) /* Child process */
-        printf("I'm the first child of the init process!\n");
+        exec("TEST.BIN");
     else if (pid == -1)
         printf("Init process failed to fork!\n");
     else{ /* Parent process */
-        printf("I forked the first user process of the system with PID %d\n", pid);
+        printf("Init forked first user process with PID %d\n", pid);
         /* Wait for the child to finish and then clean up its resources once it's done */
         waitu(pid);
     }

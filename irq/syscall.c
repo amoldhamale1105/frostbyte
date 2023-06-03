@@ -71,6 +71,11 @@ static int64_t sys_fork(int64_t* argv)
     return fork();
 }
 
+static int64_t sys_exec(int64_t* argv)
+{
+    return exec(get_curr_process(), (char*)argv[0]);
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -82,6 +87,7 @@ void init_system_call(void)
     syscall_list[6] = sys_file_size;
     syscall_list[7] = sys_read_file;
     syscall_list[8] = sys_fork;
+    syscall_list[9] = sys_exec;
 }
 
 void system_call(struct ContextFrame *ctx)

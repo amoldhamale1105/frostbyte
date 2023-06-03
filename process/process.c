@@ -266,3 +266,35 @@ int fork(void)
     /* The parent process which called fork will be returned the child process PID */
     return process->pid;
 }
+
+int exec(struct Process* process, char* name)
+{
+    int fd;
+    uint32_t size;
+
+    fd = open_file(process, name);
+    if (fd == -1)
+        return -1;
+
+    /* In exec call, the regions of the current process are overwritten with the regions of the new process and PID remains the same.
+       Hence there's no need to allocate a new memory for the new process */
+    memset((void*)USERSPACE_BASE, 0, PAGE_SIZE);
+    size = get_file_size(process, fd);
+    /* We use the userspace virt address as buffer because memory was previously allocated for the process which called exec */
+    size = read_file(process, fd, (void*)USERSPACE_BASE, size);
+    /* Here if the exec operation fails, only option is to exit because we've cleared the regions of original process */
+    if (size == UINT32_MAX)
+        exit();
+
+    close_file(process, fd);
+    /* Clear the previous process' context frame since we don't return to it */
+    memset(process->reg_context, 0, sizeof(struct ContextFrame));
+    /* The return address should be set to start of text section of new process i.e. the userspace base address */
+    process->reg_context->elr = USERSPACE_BASE;
+    /* Set the user program stack pointer to highest page address from where it can grow downwards */
+    process->reg_context->sp0 = USERSPACE_BASE + PAGE_SIZE;
+    /* Set pstate mode field to 0 (EL0) and DAIF bits to 0 which means no masking of interrupts i.e. interrupts enabled */
+    process->reg_context->spsr = 0;
+
+    return 0;
+}
