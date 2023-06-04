@@ -1,4 +1,5 @@
 #include "uart.h"
+#include "keyboard.h"
 #include <lib/libc.h>
 
 unsigned char read_char(void)
@@ -28,12 +29,7 @@ void uart_handler(void)
     uint32_t status = in_word(UART0_MIS);
 
     if (status & (1 << 4)){
-        char ch = read_char();
-        /* Translate reception of carriage return to a newline */
-        if (ch == '\r')
-            ch = '\n';
-        /* Echo the typed char back to the console */
-        write_char(ch);
+        capture_key();
         /* Clear the interrupt by setting bit 4 of the interrupt clear register */
         out_word(UART0_ICR, (1 << 4));
     }

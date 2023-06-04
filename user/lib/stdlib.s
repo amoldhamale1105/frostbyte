@@ -9,6 +9,7 @@
 .global read_file
 .global fork
 .global exec
+.global get_char
 
 writeu:
     # Allocate 16 bytes on the stack to accomodate the args to this function
@@ -181,4 +182,14 @@ exec:
 
     # Restore the stack
     add sp, sp, #8
+    ret
+
+get_char:
+    # No arguments to this syscall hence no stack space required
+    # Set the syscall index to 10 (get pressed key) in x8
+    mov x8, #10
+    # Load the arg count in x0
+    mov x0, #0
+    # Operating system trap
+    svc #0
     ret

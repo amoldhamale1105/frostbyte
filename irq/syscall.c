@@ -1,6 +1,7 @@
 #include "syscall.h"
 #include <io/print.h>
 #include <io/uart.h>
+#include <io/keyboard.h>
 #include <debug/debug.h>
 #include <stddef.h>
 #include <process/process.h>
@@ -76,6 +77,11 @@ static int64_t sys_exec(int64_t* argv)
     return exec(get_curr_process(), (char*)argv[0]);
 }
 
+static int64_t sys_keyboard_read(int64_t* argv)
+{
+    return read_key_buffer();
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -88,6 +94,7 @@ void init_system_call(void)
     syscall_list[7] = sys_read_file;
     syscall_list[8] = sys_fork;
     syscall_list[9] = sys_exec;
+    syscall_list[10] = sys_keyboard_read;
 }
 
 void system_call(struct ContextFrame *ctx)

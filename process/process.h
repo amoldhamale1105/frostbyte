@@ -36,7 +36,8 @@ struct ProcessControl
 enum En_SleepEvent
 {
     SLEEP_SYSCALL = 1,
-    ZOMBIE_CLEANUP
+    ZOMBIE_CLEANUP,
+    KEYBOARD_INPUT
 };
 
 enum En_ProcessState

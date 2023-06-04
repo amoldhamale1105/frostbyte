@@ -16,7 +16,7 @@ export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
 		$(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/file.o ${BUILD_DIR}/process.o \
-		$(BUILD_DIR)/syscall.o $(BUILD_DIR)/libc.o
+		$(BUILD_DIR)/syscall.o $(BUILD_DIR)/libc.o $(BUILD_DIR)/keyboard.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
