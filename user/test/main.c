@@ -2,7 +2,6 @@
 
 int main(void)
 {
-    printf("Test user process started\n");
-
+    printf("Test user process (PID %d) started\n", getpid());
     return 0;
 }

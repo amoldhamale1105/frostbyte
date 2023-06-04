@@ -48,10 +48,11 @@ int main(void)
         /* Wait for the child to finish and then clean up its resources once it's done */
         waitu(pid);
     }
+    pid = getpid();
 
     while (sched_counter < 5)
     {
-        printf("User process with PID %d running %u\r\n", pid == 0 ? 2 : 1, sched_counter++);
+        printf("User process with PID %d running %u\r\n", pid, sched_counter++);
         /* This should sleep for 1 second given that 1 tick = 10 ms */
         sleepu(100);
     }

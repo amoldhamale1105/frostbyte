@@ -82,6 +82,11 @@ static int64_t sys_keyboard_read(int64_t* argv)
     return read_key_buffer();
 }
 
+static int64_t sys_get_pid(int64_t* argv)
+{
+    return get_curr_process()->pid;
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -95,6 +100,7 @@ void init_system_call(void)
     syscall_list[8] = sys_fork;
     syscall_list[9] = sys_exec;
     syscall_list[10] = sys_keyboard_read;
+    syscall_list[11] = sys_get_pid;
 }
 
 void system_call(struct ContextFrame *ctx)
