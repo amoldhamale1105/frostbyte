@@ -7,6 +7,31 @@
 #include "stdint.h"
 #include "stdarg.h"
 
+struct DirEntry {
+    uint8_t name[8];
+    uint8_t ext[3];
+    uint8_t attributes;
+    uint8_t reserved;
+    uint8_t create_ms;
+    uint16_t create_time;
+    uint16_t create_date;
+    uint16_t access_date;
+    uint16_t attr_index;
+    uint16_t m_time;
+    uint16_t m_date;
+    uint16_t cluster_index;
+    uint32_t file_size;
+} __attribute__((packed));
+
+#define ENTRY_AVAILABLE 0
+#define ENTRY_DELETED 0xe5
+#define ATTR_VOLUME_LABEL 0x08
+#define ATTR_FILETYPE_DIRECTORY 0x10
+#define ATTR_LONG_FILENAME 0x0f
+
+#define MAX_FILENAME_BYTES 8
+#define MAX_EXTNAME_BYTES 3
+
 int printf(const char* fmt, ...);
 char* itoa(int);
 char* uitoa(uint32_t);
@@ -30,5 +55,6 @@ void waitu(int pid);
 int exec(char* prog_file);
 char getchar(void);
 int getpid(void);
+int read_root_dir(void* buf);
 
 #endif

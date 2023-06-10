@@ -16,6 +16,7 @@
 .global exec
 .global getchar
 .global getpid
+.global read_root_dir
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -282,4 +283,23 @@ getpid:
     mov x0, #0
     # Operating system trap
     svc #0
+    ret
+
+read_root_dir:
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #8
+    str x0, [sp]
+    # Set the syscall index to 12 (read root directory table) in x8
+    mov x8, #12
+    # Load the arg count in x0
+    mov x0, #1
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #8
     ret

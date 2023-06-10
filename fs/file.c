@@ -129,7 +129,7 @@ static uint32_t search_file(char *path)
         dir_entry = get_root_dir_section();
 
         for (uint32_t i = 0; i < root_entry_count; i++) {
-            if (dir_entry[i].name[0] == ENTRY_EMPTY || dir_entry[i].name[0] == ENTRY_DELETED)
+            if (dir_entry[i].name[0] == ENTRY_AVAILABLE || dir_entry[i].name[0] == ENTRY_DELETED)
                 continue;
 
             if (dir_entry[i].attributes == INVALID_FILETYPE)
@@ -307,6 +307,16 @@ void close_file(struct Process* process, int fd)
        This is different from the inode reference count which keeps a count of all processes accessing a file */
     if (process->fd_table[fd]->ref_count == 0)
         process->fd_table[fd] = NULL;
+}
+
+int read_root_dir_table(char* buf)
+{
+    struct DirEntry* dir_table = get_root_dir_section();
+    uint32_t count = get_root_dir_count();
+
+    memcpy(buf, dir_table, count * sizeof(struct DirEntry));
+
+    return count;
 }
 
 bool init_inode_table(void)

@@ -66,8 +66,12 @@ struct FileEntry
 #define PARTITION_ENTRY_OFFSET 0x1be
 #define LBA_OFFSET 8
 #define BPB_SECTOR_SIGNATURE 0xAA55
-#define ENTRY_EMPTY 0
+
+#define ENTRY_AVAILABLE 0
 #define ENTRY_DELETED 0xe5
+#define ATTR_VOLUME_LABEL 0x08
+#define ATTR_FILETYPE_DIRECTORY 0x10
+#define ATTR_LONG_FILENAME 0x0f
 
 #define MAX_FILENAME_BYTES 8
 #define MAX_EXTNAME_BYTES 3
@@ -84,5 +88,6 @@ int open_file(struct Process* process, char* pathname);
 void close_file(struct Process* process, int fd);
 uint32_t get_file_size(struct Process* process, int fd);
 uint32_t read_file(struct Process* process, int fd, void *buf, uint32_t size);
+int read_root_dir_table(char* buf);
 
 #endif

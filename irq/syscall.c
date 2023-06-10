@@ -87,6 +87,11 @@ static int64_t sys_get_pid(int64_t* argv)
     return get_curr_process()->pid;
 }
 
+static int64_t sys_read_root_dir(int64_t* argv)
+{
+    return read_root_dir_table((char*)argv[0]);
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -101,6 +106,7 @@ void init_system_call(void)
     syscall_list[9] = sys_exec;
     syscall_list[10] = sys_keyboard_read;
     syscall_list[11] = sys_get_pid;
+    syscall_list[12] = sys_read_root_dir;
 }
 
 void system_call(struct ContextFrame *ctx)
