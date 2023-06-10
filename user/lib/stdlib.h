@@ -12,6 +12,13 @@ char* itoa(int);
 char* uitoa(uint32_t);
 char* xtoa(uint64_t);
 
+void memset(void* dst, int value, unsigned int size);
+void memcpy(void* dst, void* src, unsigned int size);
+void memmove(void* dst, void* src, unsigned int size);
+int memcmp(void* src1, void* src2, unsigned int size);
+
+/* System call library functions */
+
 int writeu(char* buf, int buf_size);
 void sleepu(uint64_t ticks_10ms);
 int open_file(char* filename);

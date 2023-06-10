@@ -39,11 +39,13 @@ kernel: $(OBJS)
 user:
 	cd ./user/lib && $(MAKE)
 	cd ./user/init && $(MAKE)
+	cd ./user/shell && $(MAKE)
 	cd ./user/test && $(MAKE)
 
 user_clean:
 	cd ./user/lib && $(MAKE) clean
 	cd ./user/init && $(MAKE) clean
+	cd ./user/shell && $(MAKE) clean
 	cd ./user/test && $(MAKE) clean
 
 clean: user_clean
