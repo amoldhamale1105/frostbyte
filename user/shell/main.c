@@ -85,7 +85,7 @@ int main(void)
                 if (cmd_pid == 0)
                     exec(cmd_buf);
                 else
-                    waitu(cmd_pid);
+                    wait(cmd_pid);
             }
         }
     }

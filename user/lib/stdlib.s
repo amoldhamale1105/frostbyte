@@ -5,9 +5,9 @@
 .global memcmp
 
 .global writeu
-.global sleepu
-.global exitu
-.global waitu
+.global sleep
+.global exit
+.global wait
 .global open_file
 .global close_file
 .global get_file_size
@@ -111,7 +111,7 @@ writeu:
     add sp, sp, #16
     ret
 
-sleepu:
+sleep:
     # Allocate 8 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
@@ -130,7 +130,7 @@ sleepu:
     add sp, sp, #8
     ret
 
-exitu:
+exit:
     # No arguments to this syscall hence no stack space required
     # Set the syscall index to 2 (exit) in x8
     mov x8, #2
@@ -140,7 +140,7 @@ exitu:
     svc #0
     ret
 
-waitu:
+wait:
     # Allocate 8 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand

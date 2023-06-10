@@ -3,4 +3,4 @@
 
 _start:
     bl main
-    bl exitu
+    bl exit

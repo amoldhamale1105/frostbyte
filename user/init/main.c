@@ -11,7 +11,7 @@ int main(void)
         printf("Init process failed to fork!\n");
     else{ /* Parent process */
         /* Wait for the child to finish and then clean up its resources once it's done */
-        waitu(pid);
+        wait(pid);
     }
 
     return 0;

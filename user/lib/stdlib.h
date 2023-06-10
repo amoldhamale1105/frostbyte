@@ -45,14 +45,15 @@ int memcmp(void* src1, void* src2, unsigned int size);
 /* System call library functions */
 
 int writeu(char* buf, int buf_size);
-void sleepu(uint64_t ticks_10ms);
+void sleep(uint64_t ticks_10ms);
 int open_file(char* filename);
 int close_file(int fd);
 uint32_t get_file_size(int fd);
 uint32_t read_file(int fd, void* buffer, uint32_t size);
 int fork(void);
-void waitu(int pid);
+void wait(int pid);
 int exec(char* prog_file);
+void exit(void);
 char getchar(void);
 int getpid(void);
 int read_root_dir(void* buf);
