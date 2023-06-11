@@ -14,6 +14,19 @@ static char to_upper(char ch)
     return ch;
 }
 
+static void get_cmd_ext(char* cmd, char* ext)
+{
+    int sep_pos = strlen(cmd)-1;
+
+    while (sep_pos > 0 && cmd[sep_pos] != '.')
+    {
+        sep_pos--;
+    }
+    
+    if (sep_pos > 0)
+        memcpy(ext, cmd+sep_pos+1, MAX_EXTNAME_BYTES);
+}
+
 static int read_cmd(char* buf, char* echo_buf)
 {
     char shell_echo[4];
@@ -76,6 +89,15 @@ int main(void)
         cmd_size = read_cmd(cmd_buf, echo_buf);
         
         if (cmd_size > 0){
+            char cmd_ext[3];
+            cmd_ext[0] = 0;
+            get_cmd_ext(cmd_buf, cmd_ext);
+            if (*cmd_ext == 0)
+                memcpy(cmd_buf+strlen(cmd_buf), ".BIN", MAX_EXTNAME_BYTES+1);
+            else if (memcmp(cmd_ext, "BIN", MAX_EXTNAME_BYTES) != 0){
+                printf("%s: not an executable\n", cmd_buf);
+                continue;
+            }
             int fd = open_file(cmd_buf);
             if (fd < 0)
                 printf("%s: command not found\n", echo_buf);
