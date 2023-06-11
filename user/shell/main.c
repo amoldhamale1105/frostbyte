@@ -1,4 +1,5 @@
 #include "stdlib.h"
+#include "stddef.h"
 
 #define MAX_CMD_BUF_SIZE 256
 #define ASCII_LOWERCASE_START 97
@@ -83,7 +84,7 @@ int main(void)
                 close_file(fd);
                 int cmd_pid = fork();
                 if (cmd_pid == 0)
-                    exec(cmd_buf);
+                    exec(cmd_buf, NULL);
                 else
                     wait(cmd_pid);
             }

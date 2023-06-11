@@ -60,6 +60,6 @@ void wake_up(int event);
 void exit(void);
 void wait(int pid);
 int fork(void);
-int exec(struct Process* process, char* name);
+int exec(struct Process* process, char* name, const char* args[]);
 
 #endif

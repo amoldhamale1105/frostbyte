@@ -1,12 +1,14 @@
 /* The first user process (init.bin) with PID 1 */
 #include "stdlib.h"
+#include "stddef.h"
 
 int main(void)
 {
     int pid = fork();
+    const char* args[] = {"my_args", "passed", "to", "test", "program", NULL};
     
     if (pid == 0) /* Child process */
-        exec("SHELL.BIN");
+        exec("TEST.BIN", args);
     else if (pid == -1)
         printf("Init process failed to fork!\n");
     else{ /* Parent process */

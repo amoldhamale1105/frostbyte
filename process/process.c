@@ -2,6 +2,7 @@
 #include <memory/memory.h>
 #include <debug/debug.h>
 #include <stddef.h>
+#include <io/print.h>
 
 static struct Process process_table[TOTAL_PROCS];
 static int pid_num = 1;
@@ -267,7 +268,7 @@ int fork(void)
     return process->pid;
 }
 
-int exec(struct Process* process, char* name)
+int exec(struct Process* process, char* name, const char* args[])
 {
     int fd;
     uint32_t size;
@@ -276,8 +277,34 @@ int exec(struct Process* process, char* name)
     if (fd == -1)
         return -1;
 
+    /* Get the size and count of passed arguments for the new program */
+    int arg_count = -1;
+    int arg_size = 0;
+    while (args[++arg_count] != NULL)
+    {
+        arg_size += (strlen(args[arg_count])+1);
+    }
+    arg_size += (strlen(name)+1);
+
+    /* Use the bottom of the allocated stack space for saving programs args instead of current stack pointer address
+       This is done to avoid overwriting kernel stack at stack pointer location which contains parent call stack */
+    char* arg_val_ks = (char*)process->stack;
+    
+    /* Copy the program name and args to process kernel stack */
+    int arg_len[arg_count+1];
+    arg_len[0] = strlen(name);
+    memcpy(arg_val_ks, name, arg_len[0]);
+    arg_val_ks[arg_len[0]] = 0;
+    arg_val_ks += (arg_len[0]+1);
+    for(int i = 0; i < arg_count; i++)
+    {
+        arg_len[i+1] = strlen(args[i]);
+        memcpy(arg_val_ks, (char*)args[i], arg_len[i+1]);
+        arg_val_ks[arg_len[i+1]] = 0;
+        arg_val_ks += (arg_len[i+1]+1);
+    }
     /* In exec call, the regions of the current process are overwritten with the regions of the new process and PID remains the same.
-       Hence there's no need to allocate a new memory for the new process */
+       Hence there's no need to allocate new memory for the new program */
     memset((void*)USERSPACE_BASE, 0, PAGE_SIZE);
     size = get_file_size(process, fd);
     /* We use the userspace virt address as buffer because memory was previously allocated for the process which called exec */
@@ -295,6 +322,34 @@ int exec(struct Process* process, char* name)
     process->reg_context->sp0 = USERSPACE_BASE + PAGE_SIZE;
     /* Set pstate mode field to 0 (EL0) and DAIF bits to 0 which means no masking of interrupts i.e. interrupts enabled */
     process->reg_context->spsr = 0;
+    /* Save arg count in x2 since x0 will be overwritten by the syscall return value when this function returns
+       Before calling main, userspace programs can move this value to x0 to be identified as first arg to main */
+    process->reg_context->x2 = arg_count+1;
+    /* Make room for program arg pointers and content on the userspace stack */
+    process->reg_context->sp0 -= (arg_count+1)*8;
+    int64_t* arg_ptr = (int64_t*)process->reg_context->sp0;
+    process->reg_context->sp0 -= UPPER_BOUND(arg_size, 8);
+
+    /* Copy program arguments from the kernel stack to the user stack for the process to access */
+    char* arg_val = (char*)process->reg_context->sp0;
+    arg_val_ks = (char*)process->stack;
+
+    memcpy(arg_val, arg_val_ks, arg_len[0]);
+    *arg_ptr = (int64_t)arg_val;
+    arg_ptr++;
+    arg_val += (arg_len[0]+1);
+    arg_val_ks += (arg_len[0]+1);
+    for(int i = 1; i <= arg_count; i++)
+    {
+        memcpy(arg_val, arg_val_ks, arg_len[i]);
+        *arg_ptr = (int64_t)arg_val;
+        arg_ptr++;
+        arg_val += (arg_len[i]+1);
+        arg_val_ks += (arg_len[i]+1);
+    }
+
+    /* Save the argument addresses location on the stack to x1 to be used as second argument to main */
+    process->reg_context->x1 = (int64_t)arg_ptr - (arg_count+1)*8;
 
     return 0;
 }

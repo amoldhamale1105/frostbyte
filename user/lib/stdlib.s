@@ -247,22 +247,22 @@ fork:
     ret
 
 exec:
-    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Allocate 16 bytes on the stack to accomodate the args to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
-    # We need the registers for other purposes hence saving the arg on the stack beforehand
-    sub sp, sp, #8
-    str x0, [sp]
+    # We need the registers for other purposes hence saving the args on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
     # Set the syscall index to 9 (exec) in x8
     mov x8, #9
     # Load the arg count in x0
-    mov x0, #1
+    mov x0, #2
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
     mov x1, sp
     # Operating system trap
     svc #0
 
     # Restore the stack
-    add sp, sp, #8
+    add sp, sp, #16
     ret
 
 getchar:

@@ -31,4 +31,6 @@ struct Node* pop_front(struct List* list);
 struct Node* remove(struct List* list, int event);
 bool empty(struct List* list);
 
+int strlen(const char* str);
+
 #endif
