@@ -74,7 +74,7 @@ static int64_t sys_fork(int64_t* argv)
 
 static int64_t sys_exec(int64_t* argv)
 {
-    return exec(get_curr_process(), (char*)argv[0]);
+    return exec(get_curr_process(), (char*)argv[0], (const char**)argv[1]);
 }
 
 static int64_t sys_keyboard_read(int64_t* argv)

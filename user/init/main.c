@@ -5,7 +5,7 @@
 int main(void)
 {
     int pid = fork();
-    const char* args[] = {"my_args", "passed", "to", "test", "program", NULL};
+    const char* args[] = {"args", "passed", "to", "test", "program", NULL};
     
     if (pid == 0) /* Child process */
         exec("TEST.BIN", args);
