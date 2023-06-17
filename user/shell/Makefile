@@ -3,7 +3,7 @@ SRC_DIR := .
 INCLUDES := -I. -I../lib
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
-OBJS := $(BUILD_DIR)/start.o $(BUILD_DIR)/main.o ../lib/bin/stdlib.a
+OBJS := $(BUILD_DIR)/start.o $(BUILD_DIR)/main.o $(BUILD_DIR)/shell.o ../lib/bin/stdlib.a
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 

@@ -7,6 +7,7 @@ int printf(const char *fmt, ...)
     const char* p;
     char* sval;
     int ival;
+    uint8_t cval[2];
     uint64_t xval;
     uint32_t uval;
     char buf[UINT16_MAX];
@@ -25,6 +26,11 @@ int printf(const char *fmt, ...)
 
         switch(*++p)
         {
+        case 'c':
+            cval[0] = (char)va_arg(ap, int);
+            cval[1] = 0;
+            fmt_spec_str = cval;
+            break;
         case 'x':
             xval = va_arg(ap, uint64_t);
             fmt_spec_str = xtoa(xval);

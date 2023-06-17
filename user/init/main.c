@@ -5,10 +5,9 @@
 int main(void)
 {
     int pid = fork();
-    const char* args[] = {"args", "passed", "to", "test", "program", NULL};
     
     if (pid == 0) /* Child process */
-        exec("TEST.BIN", args);
+        exec("SHELL.BIN", NULL);
     else if (pid == -1)
         printf("Init process failed to fork!\n");
     else{ /* Parent process */

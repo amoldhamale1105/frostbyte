@@ -278,11 +278,14 @@ int exec(struct Process* process, char* name, const char* args[])
         return -1;
 
     /* Get the size and count of passed arguments for the new program */
-    int arg_count = -1;
+    int arg_count = 0;
     int arg_size = 0;
-    while (args[++arg_count] != NULL)
-    {
-        arg_size += (strlen(args[arg_count])+1);
+    if (args != NULL){
+        while (args[arg_count] != NULL)
+        {
+            arg_size += (strlen(args[arg_count])+1);
+            arg_count++;
+        }
     }
     arg_size += (strlen(name)+1);
 

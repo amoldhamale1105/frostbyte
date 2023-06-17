@@ -7,6 +7,7 @@ int printk(const char *fmt, ...)
     const char* p;
     char* sval;
     int ival;
+    uint8_t cval;
     uint64_t xval;
     uint32_t uval;
     
@@ -21,6 +22,10 @@ int printk(const char *fmt, ...)
 
         switch(*++p)
         {
+        case 'c':
+            cval = (uint8_t)va_arg(ap, int);
+            write_char(cval);
+            break;
         case 'x':
             xval = va_arg(ap, uint64_t);
             write_string(xtoa(xval));
