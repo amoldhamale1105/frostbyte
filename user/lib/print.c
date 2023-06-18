@@ -1,6 +1,15 @@
 #include "stddef.h"
 #include "stdlib.h"
 
+#define PRINT_BATCH_BUF_SIZE 100
+
+static int flush_uart(char* buf, int count)
+{
+    buf[count] = 0;
+    /* Invoke a system call to flush the buffer to the uart console */
+    return writeu(buf, count);
+}
+
 int printf(const char *fmt, ...)
 {
     va_list ap;
@@ -10,15 +19,19 @@ int printf(const char *fmt, ...)
     uint8_t cval[2];
     uint64_t xval;
     uint32_t uval;
-    char buf[UINT16_MAX];
-    uint16_t count;
+    char buf[PRINT_BATCH_BUF_SIZE];
+    uint16_t pos, count = 0;
     
     va_start(ap, fmt);
-    for(p = fmt, count = 0; *p; p++)
+    for(p = fmt, pos = 0; *p; p++)
     {
         if (*p != '%')
         {
-            buf[count++] = *p;
+            if (pos == PRINT_BATCH_BUF_SIZE-1){
+                count += flush_uart(buf, pos);
+                pos = 0;
+            }
+            buf[pos++] = *p;
             continue;
         }
 
@@ -55,16 +68,24 @@ int printf(const char *fmt, ...)
         if (fmt_spec_str != NULL){
             do
             {
-                buf[count++] = *fmt_spec_str++;
+                if (pos == PRINT_BATCH_BUF_SIZE-1){
+                    count += flush_uart(buf, pos);
+                    pos = 0;
+                }
+                buf[pos++] = *fmt_spec_str++;
             } while (*fmt_spec_str);
         }
-        else
-            buf[count++] = *p;
+        else{
+            if (pos == PRINT_BATCH_BUF_SIZE-1){
+                count += flush_uart(buf, pos);
+                pos = 0;
+            }
+            buf[pos++] = *p;
+        }
     }
 
-    buf[count] = 0;
-    /* Invoke a system call to write the buffer to the console */
-    count = writeu(buf, count);
+    if (pos > 0)
+        count += flush_uart(buf, pos);
     va_end(ap);
     return count;
 }
