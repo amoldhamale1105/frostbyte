@@ -32,6 +32,10 @@ struct DirEntry {
 #define MAX_FILENAME_BYTES 8
 #define MAX_EXTNAME_BYTES 3
 
+#define ASCII_LOWERCASE_START 97
+#define ASCII_LOWERCASE_END 122
+#define ASCII_UPPERCASE_OFFSET 32
+
 int printf(const char* fmt, ...);
 char* itoa(int);
 char* uitoa(uint32_t);
@@ -42,6 +46,8 @@ void memcpy(void* dst, void* src, unsigned int size);
 void memmove(void* dst, void* src, unsigned int size);
 int memcmp(void* src1, void* src2, unsigned int size);
 int strlen(const char* str);
+char to_upper(char ch);
+void to_upper_str(char* str);
 
 /* System call library functions */
 

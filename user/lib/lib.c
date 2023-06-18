@@ -9,3 +9,18 @@ int strlen(const char* str)
     }
     return len;
 }
+
+char to_upper(char ch)
+{
+    if (ch >= ASCII_LOWERCASE_START && ch <= ASCII_LOWERCASE_END)
+        return (char)(ch - ASCII_UPPERCASE_OFFSET);
+    return ch;
+}
+
+void to_upper_str(char *str)
+{
+    while (*str)
+    {
+        *str++ = to_upper(*str);
+    }
+}
