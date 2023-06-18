@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <io/print.h>
 
-static struct Process process_table[TOTAL_PROCS];
+static struct Process process_table[PROC_TABLE_SIZE];
 static int pid_num = 1;
 static struct ProcessControl pc;
 
@@ -12,7 +12,7 @@ static struct Process* find_unused_slot(void)
 {
     struct Process* process = NULL;
 
-    for (int i = 0; i < TOTAL_PROCS; i++)
+    for (int i = 0; i < PROC_TABLE_SIZE; i++)
     {
         if (process_table[i].state == UNUSED){
             process = process_table + i;
@@ -31,6 +31,7 @@ static struct Process* alloc_new_process(void)
     if (process == NULL)
         return NULL;
 
+    memset(process->name, 0, sizeof(process->name));
     /* Allocate memory for the kernel stack. Each process will have its own kernel stack */
     process->stack = (uint64_t)kalloc();
     ASSERT(process->stack != 0);
@@ -81,11 +82,14 @@ static void init_idle_process(void)
 static void init_user_process(void)
 {
     struct Process* process;
+    const char* filename = "INIT.BIN";
+    
     process = alloc_new_process();
     ASSERT(process != NULL);
 
-    ASSERT(setup_uvm(process, "INIT.BIN"));
-
+    ASSERT(setup_uvm(process, (char*)filename));
+    memcpy(process->name, (char*)filename, strlen(filename)-(MAX_EXTNAME_BYTES+1));
+    process->ppid = 0;
     process->state = READY;
     push_back(&pc.ready_que, (struct Node*)process);
 }
@@ -146,6 +150,33 @@ void trigger_scheduler(void)
 struct Process *get_curr_process()
 {
     return pc.curr_process;
+}
+
+void get_proc_data(int pid, int *ppid, int *state, char *name)
+{
+    for (int i = 1; i < PROC_TABLE_SIZE; i++)
+    {
+        if (process_table[i].pid == pid){
+            *ppid = process_table[i].ppid;
+            *state = process_table[i].state;
+            memcpy(name, process_table[i].name, strlen(process_table[i].name));
+            break;
+        }
+    }
+}
+
+int get_active_pids(int* pid_list)
+{
+    int count = 0;
+    /* Omit the idle process which occupies the first slot in the process table
+       The idle process should be always runnning in kernel context until the system is shutdown */
+    for(int i = 1; i < PROC_TABLE_SIZE; i++)
+    {
+        if (process_table[i].state != UNUSED)
+            pid_list[count++] = process_table[i].pid;
+    }
+
+    return count;
 }
 
 void sleep(int event)
@@ -240,6 +271,9 @@ int fork(void)
     if (process == NULL)
         return -1;
     
+    /* Copy the process name and set parent process ID */
+    memcpy(process->name, pc.curr_process->name, sizeof(process->name));
+    process->ppid = pc.curr_process->pid;
     /* Copy the text, data, stack and other regions of the parent to the child process' memory
        We copy only one page because the current design of the kernel holds all process regions in a single page */
     if (!copy_uvm(process->page_map, pc.curr_process->page_map, PAGE_SIZE))
@@ -306,6 +340,9 @@ int exec(struct Process* process, char* name, const char* args[])
         arg_val_ks[arg_len[i+1]] = 0;
         arg_val_ks += (arg_len[i+1]+1);
     }
+    /* Set new name in the process table entry. NOTE Parent process ID would remain the same */
+    memset(process->name, 0, sizeof(process->name));
+    memcpy(process->name, name, strlen(name)-(MAX_EXTNAME_BYTES+1));
     /* In exec call, the regions of the current process are overwritten with the regions of the new process and PID remains the same.
        Hence there's no need to allocate new memory for the new program */
     memset((void*)USERSPACE_BASE, 0, PAGE_SIZE);

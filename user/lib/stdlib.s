@@ -17,6 +17,9 @@
 .global getchar
 .global getpid
 .global read_root_dir
+.global getppid
+.global get_active_procs
+.global get_proc_data
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -302,4 +305,53 @@ read_root_dir:
 
     # Restore the stack
     add sp, sp, #8
+    ret
+
+getppid:
+    # No arguments to this syscall hence no stack space required
+    # Set the syscall index to 13 (get parent process ID) in x8
+    mov x8, #13
+    # Load the arg count in x0
+    mov x0, #0
+    # Operating system trap
+    svc #0
+    ret
+
+get_active_procs:
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #8
+    str x0, [sp]
+    # Set the syscall index to 14 (active process ID list) in x8
+    mov x8, #14
+    # Load the arg count in x0
+    mov x0, #1
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #8
+    ret
+
+get_proc_data:
+    # Allocate 32 bytes on the stack to accomodate the args to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the args on the stack beforehand
+    sub sp, sp, #32
+    stp x0, x1, [sp]
+    stp x2, x3, [sp, #16]
+    # Set the syscall index to 15 (get process data for given pid) in x8
+    mov x8, #15
+    # Load the arg count in x0
+    mov x0, #4
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #32
     ret

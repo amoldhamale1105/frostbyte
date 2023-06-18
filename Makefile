@@ -40,6 +40,7 @@ user:
 	cd ./user/lib && $(MAKE)
 	cd ./user/init && $(MAKE)
 	cd ./user/shell && $(MAKE)
+	cd ./user/ps && $(MAKE)
 	cd ./user/list && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/test && $(MAKE)
@@ -48,6 +49,7 @@ user_clean:
 	cd ./user/lib && $(MAKE) clean
 	cd ./user/init && $(MAKE) clean
 	cd ./user/shell && $(MAKE) clean
+	cd ./user/ps && $(MAKE) clean
 	cd ./user/list && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/test && $(MAKE) clean

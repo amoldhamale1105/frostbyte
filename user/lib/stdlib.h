@@ -23,6 +23,17 @@ struct DirEntry {
     uint32_t file_size;
 } __attribute__((packed));
 
+enum En_ProcessState
+{
+    UNUSED = 0,
+    INIT,
+    RUNNING,
+    READY,
+    SLEEP,
+    KILLED
+};
+#define DEF_DISPLAY_PROCS 10
+
 #define ENTRY_AVAILABLE 0
 #define ENTRY_DELETED 0xe5
 #define ATTR_VOLUME_LABEL 0x08
@@ -48,6 +59,8 @@ int memcmp(void* src1, void* src2, unsigned int size);
 int strlen(const char* str);
 char to_upper(char ch);
 void to_upper_str(char* str);
+int atoi(char* str);
+int64_t power(int base, int exp);
 
 /* System call library functions */
 
@@ -63,6 +76,9 @@ int exec(char* prog_file, const char* args[]);
 void exit(void);
 char getchar(void);
 int getpid(void);
+int getppid(void);
+void get_proc_data(int pid, int* ppid, int* state, char* procname);
 int read_root_dir(void* buf);
+int get_active_procs(int* pid_list);
 
 #endif

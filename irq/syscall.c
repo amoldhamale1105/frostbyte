@@ -92,6 +92,23 @@ static int64_t sys_read_root_dir(int64_t* argv)
     return read_root_dir_table((char*)argv[0]);
 }
 
+static int64_t sys_get_ppid(int64_t* argv)
+{
+    return get_curr_process()->ppid;
+}
+
+static int64_t sys_active_procs(int64_t* argv)
+{
+    int* pid_list = (int*)argv[0];
+    return get_active_pids(pid_list);
+}
+
+static int64_t sys_proc_data(int64_t* argv)
+{
+    get_proc_data(argv[0], (int*)argv[1], (int*)argv[2], (char*)argv[3]);
+    return 0;
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -107,6 +124,9 @@ void init_system_call(void)
     syscall_list[10] = sys_keyboard_read;
     syscall_list[11] = sys_get_pid;
     syscall_list[12] = sys_read_root_dir;
+    syscall_list[13] = sys_get_ppid;
+    syscall_list[14] = sys_active_procs;
+    syscall_list[15] = sys_proc_data;
 }
 
 void system_call(struct ContextFrame *ctx)
