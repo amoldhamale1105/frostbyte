@@ -4,12 +4,10 @@ struct DirEntry entries[1024];
 
 int main(void)
 {
-    char filename[13] = {0};
-    char filetype[2] = {0};
+    char filename[MAX_FILENAME_BYTES+MAX_EXTNAME_BYTES+2] = {0};
+    char filetype;
     int name_count = 0;
     int count = read_root_dir(entries);
-
-    filetype[1] = 0;
 
     if (count > 0){
         printf("NAME          TYPE          SIZE\r\n");
@@ -26,15 +24,17 @@ int main(void)
                 continue;
 
             memcpy(filename, entries[i].name, MAX_FILENAME_BYTES);
-            while (*(filename + name_count) != ' ')
+            while (name_count < MAX_FILENAME_BYTES && *(filename + name_count) != ' ')
             {
                 name_count++;
             }
-            filename[name_count] = '.';
-            memcpy(filename+name_count+1, entries[i].ext, MAX_EXTNAME_BYTES);
-            *filetype = entries[i].attributes == ATTR_FILETYPE_DIRECTORY ? 'd' : 'f';
+            if (!(entries[i].ext[0] == ' ' || entries[i].ext[0] == 0)){
+                filename[name_count] = '.';
+                memcpy(filename+name_count+1, entries[i].ext, MAX_EXTNAME_BYTES);
+            }
+            filetype = entries[i].attributes == ATTR_FILETYPE_DIRECTORY ? 'd' : 'f';
 
-            printf("%s\t%s           %u\r\n", filename, filetype, (uint64_t)entries[i].file_size);
+            printf("%s\t%c           %u\r\n", filename, filetype, (uint64_t)entries[i].file_size);
 
             memset(filename, 0, sizeof(filename));
             name_count = 0;
