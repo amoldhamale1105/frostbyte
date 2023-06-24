@@ -11,7 +11,7 @@
 
 #define buf_offset(base, ptr) (int)((uint64_t)(ptr) - (uint64_t)(base))
 
-void get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_args);
+int get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_args);
 int read_cmd(char* buf, char* echo_buf);
 
 #endif

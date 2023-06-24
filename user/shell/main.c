@@ -1,10 +1,12 @@
 #include "shell.h"
+#include "stdbool.h"
 
 int main(void)
 {
     char cmd_buf[MAX_CMD_BUF_SIZE];
     char echo_buf[MAX_CMD_BUF_SIZE];
     int cmd_size = 0;
+    bool exec_bg = false;
 
     /* Run the shell indefinitely while the system is up */
     while (1)
@@ -15,10 +17,10 @@ int main(void)
         cmd_size = read_cmd(cmd_buf, echo_buf);
         
         if (cmd_size > 0){
-            int cmd_pos;
+            int cmd_pos, arg_count;
             char* cmd_ext;
             char* args[MAX_PROG_ARGS];
-            get_cmd_info(cmd_buf, echo_buf, &cmd_pos, &cmd_ext, args);
+            arg_count = get_cmd_info(cmd_buf, echo_buf, &cmd_pos, &cmd_ext, args);
             if (cmd_ext == NULL){
                 char* cmd_end = cmd_buf+cmd_pos+strlen(cmd_buf+cmd_pos);
                 memcpy(cmd_end, ".BIN", MAX_EXTNAME_BYTES+1);
@@ -33,11 +35,19 @@ int main(void)
                 printf("%s: command not found\n", echo_buf+cmd_pos);
             else{
                 close_file(fd);
+                if (exec_bg = (arg_count > 0 && args[arg_count-1][0] == '&'))
+                    args[arg_count-1] = NULL;
                 int cmd_pid = fork();
                 if (cmd_pid == 0)
                     exec(cmd_buf+cmd_pos, (const char**)args);
-                else
+                else{
+                    /* Don't make the parent wait since it's a background process, so that the shell becomes available to subsequent commands */
+                    if (exec_bg){
+                        printf("[%s] %d\n", echo_buf+cmd_pos, cmd_pid);
+                        continue;
+                    }
                     wait(cmd_pid);
+                }
             }
         }
     }

@@ -1,16 +1,16 @@
 #include "shell.h"
 #include "stdbool.h"
 
-void get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_args)
+int get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_args)
 {
     char* cmd_ptr = NULL;
     char* echo_ptr = NULL;
     char* arg_ptr = NULL;
     bool new_arg = false;
-    int arg_index = 0;
+    int arg_count = 0;
 
     if (cmd == NULL || echo == NULL || cmd_pos == NULL || ext == NULL || echo_args == NULL)
-        return;
+        return -1;
     
     *cmd_pos = 0;
     *ext = NULL;
@@ -49,13 +49,14 @@ void get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_a
         else{
             if (!new_arg){
                 new_arg = true;
-                echo_args[arg_index++] = echo_ptr;
+                echo_args[arg_count++] = echo_ptr;
             }
         }
         echo_ptr++;
     }
     /* Null terminate the array of arguments */
-    echo_args[arg_index] = NULL;
+    echo_args[arg_count] = NULL;
+    return arg_count;
 }
 
 int read_cmd(char* buf, char* echo_buf)
