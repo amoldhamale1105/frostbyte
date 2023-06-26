@@ -164,7 +164,7 @@ struct Process *get_process(int pid)
 
     for (int i = 1; i < PROC_TABLE_SIZE; i++)
     {
-        if (process_table[i].pid == pid){
+        if (process_table[i].state != UNUSED && process_table[i].pid == pid){
             process = &process_table[i];
             break;
         }
@@ -176,7 +176,7 @@ void get_proc_data(int pid, int *ppid, int *state, char *name)
 {
     for (int i = 1; i < PROC_TABLE_SIZE; i++)
     {
-        if (process_table[i].pid == pid){
+        if (process_table[i].state != UNUSED && process_table[i].pid == pid){
             if (ppid != NULL)
                 *ppid = process_table[i].ppid;
             if (state != NULL)
@@ -207,7 +207,7 @@ void switch_parent(int curr_ppid, int new_ppid)
     for(int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         /* Reassign parent for all children which have current parent with curr_ppid */
-        if (process_table[i].ppid == curr_ppid)
+        if (process_table[i].state != UNUSED && process_table[i].ppid == curr_ppid)
             process_table[i].ppid = new_ppid;
     }
 }

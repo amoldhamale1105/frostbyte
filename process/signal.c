@@ -48,6 +48,8 @@ static void def_handler_entry(int signal)
         /* Ignore the request for init process */
         if (target_proc->pid == 1)
             return;
+        /* Remove the process from the ready queue */
+        erase(&pc->ready_que, (struct Node*)target_proc);
         /* Handover orphan children if any to the init process */
         switch_parent(target_proc->pid, 1);
         /* Invoke exit for the process to unblock the parent if it is waiting */
@@ -71,17 +73,15 @@ static void def_handler_entry(int signal)
             }
             target_proc->state = UNUSED;
         }
-        /* Remove the process from the ready queue */
-        erase(&pc->ready_que, (struct Node*)target_proc);
         break;
     }
     case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in unattended zombies */
         /* Ignore the request for init process */
         if (target_proc->pid == 1)
             return;
-        target_proc->state = KILLED;
         /* Remove the process from the ready queue */
         erase(&pc->ready_que, (struct Node*)target_proc);
+        target_proc->state = KILLED;
         break;
     case SIGCHLD:
         /* SIGCHLD is not supposed to be handled by the kernel. It's the parent's responsibilty */
