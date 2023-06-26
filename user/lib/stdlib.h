@@ -61,6 +61,7 @@ char to_upper(char ch);
 void to_upper_str(char* str);
 int atoi(char* str);
 int64_t power(int base, int exp);
+int abs(int num);
 
 /* System call library functions */
 
@@ -74,6 +75,7 @@ int fork(void);
 void wait(int pid);
 int exec(char* prog_file, const char* args[]);
 void exit(void);
+int kill(int pid, int signal);
 char getchar(void);
 int getpid(void);
 int getppid(void);

@@ -91,6 +91,8 @@ static void init_user_process(void)
     memcpy(process->name, (char*)filename, strlen(filename)-(MAX_EXTNAME_BYTES+1));
     process->ppid = 0;
     process->state = READY;
+    /* Initialize signal handlers for the init process */
+    init_handlers(process);
     push_back(&pc.ready_que, (struct Node*)process);
 }
 
@@ -98,6 +100,7 @@ void init_process(void)
 {
     pc.ready_que.head = pc.ready_que.tail = NULL;
     init_idle_process();
+    init_def_handlers(&pc);
     init_user_process();
 }
 
@@ -119,6 +122,9 @@ static void schedule(void)
     struct Process* old_process = pc.curr_process;
     struct Process* new_process;
 
+    /* While returning to user mode from kernel mode, check for any pending signals on the process about to be scheduled */
+    if (!empty(&pc.ready_que))
+        check_pending_signals((struct Process*)front(&pc.ready_que));
     /* In absence of other processes in the queue, the idle process will be chosen to run
        Otherwise pick the process at the head of the ready queue */
     new_process = empty(&pc.ready_que) ? process_table : (struct Process*)pop_front(&pc.ready_que);
@@ -152,14 +158,31 @@ struct Process *get_curr_process()
     return pc.curr_process;
 }
 
+struct Process *get_process(int pid)
+{
+    struct Process* process = NULL;
+
+    for (int i = 1; i < PROC_TABLE_SIZE; i++)
+    {
+        if (process_table[i].pid == pid){
+            process = &process_table[i];
+            break;
+        }
+    }
+    return process;
+}
+
 void get_proc_data(int pid, int *ppid, int *state, char *name)
 {
     for (int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         if (process_table[i].pid == pid){
-            *ppid = process_table[i].ppid;
-            *state = process_table[i].state;
-            memcpy(name, process_table[i].name, strlen(process_table[i].name));
+            if (ppid != NULL)
+                *ppid = process_table[i].ppid;
+            if (state != NULL)
+                *state = process_table[i].state;
+            if (name != NULL)
+                memcpy(name, process_table[i].name, strlen(process_table[i].name));
             break;
         }
     }
@@ -177,6 +200,16 @@ int get_active_pids(int* pid_list)
     }
 
     return count;
+}
+
+void switch_parent(int curr_ppid, int new_ppid)
+{
+    for(int i = 1; i < PROC_TABLE_SIZE; i++)
+    {
+        /* Reassign parent for all children which have current parent with curr_ppid */
+        if (process_table[i].ppid == curr_ppid)
+            process_table[i].ppid = new_ppid;
+    }
 }
 
 void sleep(int event)
@@ -210,20 +243,27 @@ void wake_up(int event)
     }
 }
 
-void exit(void)
+void exit(struct Process* process, bool sig_handler_req)
 {
-    struct Process* process = pc.curr_process;
-    
+    if (process == NULL || process->state == UNUSED || process->state == KILLED)
+        return;
+
     /* Set the state to killed and event to PID for the wait function to sweep it later */
     process->state = KILLED;
     process->event = process->pid;
+    /* Inform the parent about death of child */
+    struct Process* parent = get_process(process->ppid);
+    if (parent != NULL)
+        parent->signals |= (1 << SIGCHLD);
 
     push_back(&pc.zombies, (struct Node*)process);
 
     /* Wake up the process sleeping in wait to clean up this zombie process */
     wake_up(ZOMBIE_CLEANUP);
 
-    schedule();
+    /* Put off scheduling if invoked by a signal handler because it will have work to do */
+    if (!sig_handler_req)
+        schedule();
 }
 
 void wait(int pid)
@@ -235,7 +275,9 @@ void wait(int pid)
         if (!empty(&pc.zombies)){
             zombie = (struct Process*)remove(&pc.zombies, pid);
             if (zombie != NULL){
-                ASSERT(zombie->state == KILLED);
+                /* There is a chance a signal handler cleaned up the process resources already */
+                if (zombie->state != KILLED)
+                    break;
                 kfree(zombie->stack);
                 free_vm(zombie->page_map);
                 /* Decrement ref counts of all files left open by the zombie */
@@ -292,7 +334,8 @@ int fork(void)
 
     /* Copy the context frame so that the child process also resumes at the point after the fork call */
     memcpy(process->reg_context, pc.curr_process->reg_context, sizeof(struct ContextFrame));
-
+    /* Initialize signal handlers for the child process */
+    init_handlers(process);
     /* Set the return value for child process to 0 */
     process->reg_context->x0 = 0;
     process->state = READY;
@@ -351,9 +394,12 @@ int exec(struct Process* process, char* name, const char* args[])
     size = read_file(process, fd, (void*)USERSPACE_BASE, size);
     /* Here if the exec operation fails, only option is to exit because we've cleared the regions of original process */
     if (size == UINT32_MAX)
-        exit();
+        exit(process, false);
 
     close_file(process, fd);
+    /* Clear any previously set custom handlers and initialize default signal handlers for the new process */
+    memset(process->handlers, 0, sizeof(SIGHANDLER)*TOTAL_SIGNALS);
+    init_handlers(process);
     /* Clear the previous process' context frame since we don't return to it */
     memset(process->reg_context, 0, sizeof(struct ContextFrame));
     /* The return address should be set to start of text section of new process i.e. the userspace base address */
@@ -391,5 +437,15 @@ int exec(struct Process* process, char* name, const char* args[])
     /* Save the argument addresses location on the stack to x1 to be used as second argument to main */
     process->reg_context->x1 = (int64_t)arg_ptr - (arg_count+1)*8;
 
+    return 0;
+}
+
+int kill(struct Process *process, int signal)
+{
+    if (process == NULL || process->state == UNUSED)
+        return -1;
+    if (signal <= 0 || signal > TOTAL_SIGNALS-1)
+        return -1;
+    process->signals |= (1 << signal);
     return 0;
 }

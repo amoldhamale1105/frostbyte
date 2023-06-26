@@ -68,9 +68,10 @@ void handler(struct ContextFrame* ctx)
     {
     case 1:
         if (user_except){
-            printk("%x: Process (PID %d) resulted in a synchronous exception. Terminating\n", ctx->elr, get_curr_process()->pid);
+            struct Process* curr_proc = get_curr_process();
+            printk("%x: Process (PID %d) resulted in a synchronous exception. Terminating\n", ctx->elr, curr_proc->pid);
             /* Although this exit call occurs in kernel space, it is meant to terminate the current user process which caused this exception */
-            exit();
+            exit(curr_proc, false);
         }
         else{
             printk("Sync exception at %x: %x\r\n", ctx->elr, ctx->esr);
@@ -103,8 +104,9 @@ void handler(struct ContextFrame* ctx)
         break;
     default:
         if (user_except){
-            printk("%x: Process (PID %d) resulted in an unknown exception. Terminating\n", ctx->elr, get_curr_process()->pid);
-            exit();
+            struct Process* curr_proc = get_curr_process();
+            printk("%x: Process (PID %d) resulted in an unknown exception. Terminating\n", ctx->elr, curr_proc->pid);
+            exit(curr_proc, false);
         }
         else{
             printk("Unknown exception at %x: %x\r\n", ctx->elr, ctx->esr);

@@ -4,6 +4,7 @@
 #include <irq/handler.h>
 #include <fs/file.h>
 #include <lib/libc.h>
+#include "signal.h"
 
 struct Process
 {
@@ -17,8 +18,10 @@ struct Process
     uint64_t sp; /* Process kernel stack pointer */
     uint64_t page_map;
     uint64_t stack; /* Process kernel stack address */
+    uint32_t signals; /* Pending signals bit field */
     struct FileEntry* fd_table[100]; /* A user file desc table which contains pointers to global file table entries */
     struct ContextFrame* reg_context;
+    SIGHANDLER handlers[TOTAL_SIGNALS];
 };
 
 struct ProcessControl
@@ -37,7 +40,7 @@ struct ProcessControl
 
 enum En_SleepEvent
 {
-    SLEEP_SYSCALL = 1,
+    SLEEP_SYSCALL = -255,
     ZOMBIE_CLEANUP,
     KEYBOARD_INPUT
 };
@@ -57,13 +60,16 @@ void trigger_scheduler(void);
 void swap(uint64_t* prev_sp_addr, uint64_t curr_sp);
 void trap_return(void);
 struct Process* get_curr_process();
+struct Process* get_process(int pid);
 void get_proc_data(int pid, int* ppid, int* state, char* name);
 int get_active_pids(int* pid_list);
+void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);
 void wake_up(int event);
-void exit(void);
+void exit(struct Process* process, bool sig_handler_req);
 void wait(int pid);
 int fork(void);
 int exec(struct Process* process, char* name, const char* args[]);
+int kill(struct Process *process, int signal);
 
 #endif

@@ -2,10 +2,18 @@
 
 int main(int argc, char** argv)
 {
-    printf("Test user process (PID %d) started\n", getpid());
-    for(int i = 0; i < argc; i++)
+    if (argc > 1){
+        if (memcmp(argv[1], "arg", 3) == 0){
+            for(int i = 0; i < argc; i++)
+            {
+                printf("arg%d: %s\n", i, argv[i]);
+            }
+            return 0;
+        }
+    }
+    while (1)
     {
-        printf("arg%d: %s\n", i, argv[i]);
+        sleep(10);
     }
     
     return 0;

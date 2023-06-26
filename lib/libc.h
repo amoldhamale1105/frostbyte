@@ -27,6 +27,8 @@ int memcmp(void* src1, void* src2, unsigned int size);
 
 void push_back(struct List* list, struct Node* node);
 struct Node* pop_front(struct List* list);
+struct Node* erase(struct List* list, struct Node* node);
+struct Node* front(const struct List* list);
 /* Special function for the sleep and wakeup implementation */
 struct Node* remove(struct List* list, int event);
 bool empty(struct List* list);

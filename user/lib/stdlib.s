@@ -20,6 +20,7 @@
 .global getppid
 .global get_active_procs
 .global get_proc_data
+.global kill
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -354,4 +355,23 @@ get_proc_data:
 
     # Restore the stack
     add sp, sp, #32
+    ret
+
+kill:
+    # Allocate 16 bytes on the stack to accomodate the args to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the args on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
+    # Set the syscall index to 16 (send signal) in x8
+    mov x8, #16
+    # Load the arg count in x0
+    mov x0, #2
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #16
     ret

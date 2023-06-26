@@ -27,6 +27,36 @@ struct Node *pop_front(struct List *list)
     return node;
 }
 
+struct Node *erase(struct List *list, struct Node *node)
+{
+    struct Node* curr_node = list->head;
+    struct Node* prev = NULL;
+
+    while (curr_node != NULL)
+    {
+        if ((uint64_t)node == (uint64_t)curr_node){
+            if (prev == NULL)
+                list->head = curr_node->next;
+            else
+                prev->next = curr_node->next;
+
+            if (curr_node->next == NULL)
+                list->tail = prev;
+            
+            break;
+        }
+        prev = curr_node;
+        curr_node = curr_node->next;
+    }
+    
+    return curr_node;
+}
+
+struct Node* front(const struct List* list)
+{
+    return list->head;
+}
+
 struct Node *remove(struct List *list, int event)
 {
     struct Node* node = list->head;

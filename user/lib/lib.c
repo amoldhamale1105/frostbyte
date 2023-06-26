@@ -63,3 +63,8 @@ int64_t power(int base, int exp)
         pow = base*pow;
     return pow;
 }
+
+int abs(int num)
+{
+    return num < 0 ? -num : num;
+}

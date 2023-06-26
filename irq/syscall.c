@@ -36,7 +36,7 @@ static int64_t sys_sleep(int64_t* argv)
 
 static int64_t sys_exit(int64_t* argv)
 {
-    exit();
+    exit(get_curr_process(), false);
     return 0;
 }
 
@@ -109,6 +109,11 @@ static int64_t sys_proc_data(int64_t* argv)
     return 0;
 }
 
+static int64_t sys_kill(int64_t* argv)
+{
+    return kill(get_process(argv[0]), argv[1]);
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -127,6 +132,7 @@ void init_system_call(void)
     syscall_list[13] = sys_get_ppid;
     syscall_list[14] = sys_active_procs;
     syscall_list[15] = sys_proc_data;
+    syscall_list[16] = sys_kill;
 }
 
 void system_call(struct ContextFrame *ctx)
