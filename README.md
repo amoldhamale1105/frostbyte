@@ -1,4 +1,4 @@
-# pious
+# frostbite
 A multi-tasking kernel developed from scratch for 64-bit ARM architecture. The current version is tested on a virtualized raspberry pi 3b. The kernel behaves and works on the emulated board exactly as it would on real hardware because of a full system emulation using qemu.  
 
 ## Overview
