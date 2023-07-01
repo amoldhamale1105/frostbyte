@@ -8,7 +8,7 @@ _start:
     mrs x0, mpidr_el1
     # get the lower 2 bits of the x0 register
     and x0, x0, #3
-    # check if value if 0 (CPU0). We are building this kernel to run on CPU0 core only
+    # check if value is 0 (CPU0). We are building this kernel to run on CPU0 core only
     cmp x0, #0      
     beq kernel_entry
 

@@ -72,7 +72,7 @@ void kfree(uint64_t addr)
     /* Assert that the address is within memory limit */
     ASSERT(addr + PAGE_SIZE <= MEMORY_END);
 
-    /* Add the page to be freed to the linked list of free pages just after the head */
+    /* Add the page to the linked list of free pages just after the head */
     struct Page* page_addr = (struct Page*)addr;
     page_addr->next = free_mem_head.next;
     free_mem_head.next = page_addr;
@@ -92,10 +92,11 @@ static uint64_t* find_gdt_entry(uint64_t map, uint64_t virt_addr, int alloc_new,
     if (gdt_addr[gdt_index] & ENTRY_VALID)
         gdt_entry = (uint64_t*)(TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_addr[gdt_index])));
     else if (alloc_new){
-        gdt_entry = kalloc();
+        /* Reserve space for the upper directory table (gdt_entry) in the same page after GDT end */
+        gdt_entry = (uint64_t*)(gdt_addr + PAGE_TABLE_ENTRIES);
         if (gdt_entry != NULL){
             /* Initialize the upper directory table to all zeros */
-            memset(gdt_entry, 0, PAGE_SIZE);
+            memset(gdt_entry, 0, PAGE_TABLE_SIZE);
             gdt_addr[gdt_index] = (TO_PHY(gdt_entry) | attr | TABLE_ENTRY);
         }
     }
@@ -114,15 +115,16 @@ static uint64_t* find_udt_entry(uint64_t map, uint64_t virt_addr, int alloc_new,
     if (NULL == (gdt_entry = find_gdt_entry(map, virt_addr, alloc_new, attr)))
         return NULL;
 
-    /* For a page directory table if valid bit in clear, the entry is unused */
+    /* For a page directory table if valid bit is clear, the entry is unused */
     if (gdt_entry[udt_index] & ENTRY_VALID)
         udt_entry = (uint64_t*)TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_entry[udt_index]));
     /* If alloc_new is 1, allocate a new page if it does not exist */
     else if (alloc_new){
-        udt_entry = kalloc();
+        /* Reserve space for the middle directory table (udt_entry) in the same page after UDT end */
+        udt_entry = (uint64_t*)(gdt_entry + PAGE_TABLE_ENTRIES);
         if (udt_entry != NULL){
             /* Initialize the middle directory table to all zeros */
-            memset(udt_entry, 0, PAGE_SIZE);
+            memset(udt_entry, 0, PAGE_TABLE_SIZE);
             gdt_entry[udt_index] = (TO_PHY(udt_entry) | attr | TABLE_ENTRY);
         }
     }
@@ -178,43 +180,7 @@ void free_page(uint64_t map, uint64_t virt_addr)
     }
 }
 
-static void free_mdt(uint64_t map)
-{
-    uint64_t* gdt_addr = (uint64_t*)map;
-    uint64_t* udt_addr = NULL;
-
-    for(int i = 0; i < PAGE_TABLE_ENTRIES; i++)
-    {
-        if (gdt_addr[i] & ENTRY_VALID){
-            /* Retrieve the address of the upper directory table from the GDT entry */
-            udt_addr = (uint64_t*)TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_addr[i]));
-            for(int j = 0; j < PAGE_TABLE_ENTRIES; j++)
-            {
-                /* Free the middle directory table whose entry bit is valid in the upper directory table */
-                if (udt_addr[j] & ENTRY_VALID){
-                    kfree(TO_VIRT(PAGE_DIR_ENTRY_ADDR(udt_addr[j])));
-                    udt_addr[j] = 0;
-                }
-            }
-        }
-    }
-}
-
-static void free_udt(uint64_t map)
-{
-    uint64_t* gdt_addr = (uint64_t*)map;
-
-    for(int i = 0; i < PAGE_TABLE_ENTRIES; i++)
-    {
-        /* Free the upper directory table whose entry bit is valid in the global directory table */
-        if (gdt_addr[i] & ENTRY_VALID){
-            kfree(TO_VIRT(PAGE_DIR_ENTRY_ADDR(gdt_addr[i])));
-            gdt_addr[i] = 0;
-        }
-    }
-}
-
-static void free_gdt(uint64_t map)
+static void free_tables(uint64_t map)
 {
     kfree(map);
 }
@@ -222,11 +188,10 @@ static void free_gdt(uint64_t map)
 /* Function to free user space memory */
 void free_vm(uint64_t map)
 {
-    /* User space starts at 0x400000 */
+    /* Since the entire userspace process is loaded within a single 2M page, we just need to free a single page
+       This will change if the kernel is equipped to manage process address space larger than unit page size */
     free_page(map, USERSPACE_BASE);
-    free_mdt(map);
-    free_udt(map);
-    free_gdt(map);
+    free_tables(map);
 }
 
 bool setup_uvm(struct Process* process, char* program_filename)

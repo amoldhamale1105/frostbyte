@@ -1,4 +1,4 @@
-# frostbite
+# FrostByte
 A multi-tasking kernel developed from scratch for 64-bit ARM architecture. The current version is tested on a virtualized raspberry pi 3b. The kernel behaves and works on the emulated board exactly as it would on real hardware because of a full system emulation using qemu.  
 
 ## Overview
@@ -43,7 +43,7 @@ You can selectively build and clean artifacts by running make on specific target
 All build artifacts will be present in the **build** directory and output artifacts in the **bin** directory on successful build.
 
 ## Run and Test
-A successful build will create **kernel8.img** and **pious** files in the **bin** directory.  
+A successful build will create **kernel8.img** and **frostbyte** files in the **bin** directory.  
 
 At the project root, run the following command to start the qemu based virtual raspberry pi 3b with our kernel image
 ```

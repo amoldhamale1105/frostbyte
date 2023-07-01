@@ -4,7 +4,7 @@
 .equ TCR_TG0,       (0 << 14)
 .equ TCR_TG1,       (2 << 30)
 .equ TCR_VALUE,     (TCR_T0SZ | TCR_T1SZ | TCR_TG0 | TCR_TG1) // Translation control register value
-.equ PAGE_SIZE,     (2*1024*1024) // 2M
+.equ PAGE_SIZE,     (0x200000) // 2M
 
 .global enable_mmu
 .global setup_vm
@@ -47,6 +47,7 @@ enable_mmu:
     mrs x0, sctlr_el1
     orr x0, x0, #1
     msr sctlr_el1, x0
+    ret
 
 setup_vm:
 setup_kvm:
@@ -174,18 +175,17 @@ pud_ttbr1:
 # Middle directory table. Every entry in this table points to 2M physical page
 pmd_ttbr1:
     .space 4096
-# Middle directory to map addresses beyomd the first 1G physical memory chunk
+# Middle directory to map addresses beyond the first 1G physical memory chunk
 pmd2_ttbr1:
     .space 4096
 
-# User mode translation tables
+# Dummy user mode translation tables. Real ones will be set up separately for each process when they are created
 # Top level global page directory table with 512 entries, 8-byte each. Each entry represents 512G of memory
 pgd_ttbr0:
-    # Allocate 4k of storage filled with zeros
     .space 4096
 # Upper directory table of 4k size. Each entry in this table represents 1G of memory
 pud_ttbr0:
     .space 4096
-# Middle directory table. Every entry in this table points to 2M physical page
+# Middle directory table. Since this is a dummy table, we will reserve just 8 bytes for a single page address
 pmd_ttbr0:
-    .space 4096
+    .space 8

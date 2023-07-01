@@ -51,7 +51,7 @@ static struct Process* alloc_new_process(void)
     *(uint64_t*)(REGISTER_POSITION(process->sp, 11)) = (uint64_t)trap_return;
     /* The return address should be set to the userspace base address */
     process->reg_context->elr = USERSPACE_BASE;
-    /* In pious, the all regions (text, stack, data) of a process are expected to lie in the same 2M page  
+    /* In current version of the kernel, all regions (text, stack, data) of a process are expected to lie in the same 2M page  
        Hence, set the stack pointer to the top of the page from where it can grow downwards */
     process->reg_context->sp0 = USERSPACE_BASE + PAGE_SIZE;
     /* Set pstate mode field to 0 (EL0) and DAIF bits to 0 which means no masking of interrupts i.e. interrupts enabled */

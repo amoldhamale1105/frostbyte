@@ -18,7 +18,7 @@ struct Process
     uint64_t sp; /* Process kernel stack pointer */
     uint64_t page_map;
     uint64_t stack; /* Process kernel stack address */
-    uint32_t signals; /* Pending signals bit field */
+    uint32_t signals; /* Pending signals bit map */
     struct FileEntry* fd_table[100]; /* A user file desc table which contains pointers to global file table entries */
     struct ContextFrame* reg_context;
     SIGHANDLER handlers[TOTAL_SIGNALS];

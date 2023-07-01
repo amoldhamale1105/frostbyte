@@ -19,8 +19,7 @@ int dummy_glob = 30;
 void kmain(void)
 {
     init_uart();
-    printk("Welcome to Pious (An OS built for the Raspberry Pi 3b)\n");
-    printk("Current exception level is EL%u\n", (uint64_t)get_el());
+    printk("\nWelcome to FrostByte (A minimalistic aarch64 kernel)\n\n");
 
     init_mem();
     init_fs();

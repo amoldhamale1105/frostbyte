@@ -11,7 +11,7 @@ int main(void)
     /* Run the shell indefinitely while the system is up */
     while (1)
     {
-        printf("root@pious:~# ");
+        printf("root@frostbyte:~# ");
         memset(cmd_buf, 0, sizeof(cmd_buf));
         memset(echo_buf, 0, sizeof(echo_buf));
         cmd_size = read_cmd(cmd_buf, echo_buf);
