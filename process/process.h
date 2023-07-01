@@ -59,7 +59,7 @@ void init_process(void);
 void trigger_scheduler(void);
 void swap(uint64_t* prev_sp_addr, uint64_t curr_sp);
 void trap_return(void);
-struct Process* get_curr_process();
+struct Process* get_curr_process(void);
 struct Process* get_process(int pid);
 void get_proc_data(int pid, int* ppid, int* state, char* name);
 int get_active_pids(int* pid_list);

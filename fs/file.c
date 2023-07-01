@@ -204,7 +204,8 @@ uint32_t read_file(struct Process* process, int fd, void *buf, uint32_t size)
     
     uint32_t read_size = read_raw_data(process->fd_table[fd]->inode->cluster_index, buf, offset, size);
     /* Update the file offset in global file table entry after previous read operation */
-    process->fd_table[fd]->offset += read_size;
+    if (read_size <= size)
+        process->fd_table[fd]->offset += read_size;
 
     return read_size;
 }

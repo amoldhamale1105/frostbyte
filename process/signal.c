@@ -58,7 +58,7 @@ static void def_handler_entry(int signal)
         if (target_proc->state != UNUSED){
             /* Release memory used by the process for page map and stack */
             kfree(target_proc->stack);
-            free_vm(target_proc->page_map);
+            free_uvm(target_proc->page_map);
             /* Decrement ref counts of all files left open by the process */
             for(int i = 0; i < MAX_OPEN_FILES; i++)
             {

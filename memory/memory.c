@@ -186,7 +186,7 @@ static void free_tables(uint64_t map)
 }
 
 /* Function to free user space memory */
-void free_vm(uint64_t map)
+void free_uvm(uint64_t map)
 {
     /* Since the entire userspace process is loaded within a single 2M page, we just need to free a single page
        This will change if the kernel is equipped to manage process address space larger than unit page size */
@@ -210,16 +210,17 @@ bool setup_uvm(struct Process* process, char* program_filename)
                 goto out;
             uint32_t binary_size = get_file_size(process, fd);
             /* Use the read_file function to load the process binary in the memory page allocated */
-            if (binary_size != read_file(process, fd, proc_page, binary_size))
-                goto out;
+            uint32_t bytes_read = read_file(process, fd, proc_page, binary_size);
             close_file(process, fd);
+            if (binary_size != bytes_read)
+                goto out;
             return true;
         }
     }
 
 out:
     kfree((uint64_t)proc_page);
-    free_vm(map);
+    free_uvm(map);
     return false;
 }
 
@@ -261,7 +262,7 @@ bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size)
 
 err:
     kfree((uint64_t)proc_page);
-    free_vm(dst_map);
+    free_uvm(dst_map);
 out:
     return status;
 }

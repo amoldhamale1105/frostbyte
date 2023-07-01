@@ -153,7 +153,7 @@ void trigger_scheduler(void)
     schedule();
 }
 
-struct Process *get_curr_process()
+struct Process *get_curr_process(void)
 {
     return pc.curr_process;
 }
@@ -279,7 +279,7 @@ void wait(int pid)
                 if (zombie->state != KILLED)
                     break;
                 kfree(zombie->stack);
-                free_vm(zombie->page_map);
+                free_uvm(zombie->page_map);
                 /* Decrement ref counts of all files left open by the zombie */
                 for(int i = 0; i < MAX_OPEN_FILES; i++)
                 {
