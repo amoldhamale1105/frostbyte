@@ -29,3 +29,8 @@ void kmain(void)
     enable_irq();
     init_process();
 }
+
+void shutdown_banner(void)
+{
+    printk("It's now safe to turn off your computer. Deja vu? ;)\n");
+}

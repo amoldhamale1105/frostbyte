@@ -45,9 +45,6 @@ static void def_handler_entry(int signal)
     {
     case SIGINT:
     case SIGTERM: { /* Graceful termination where orphans are reassigned, parent informed and memory cleaned */
-        /* Ignore the request for init process */
-        if (target_proc->pid == 1)
-            return;
         /* Remove the process from the ready queue */
         erase(&pc->ready_que, (struct Node*)target_proc);
         /* Handover orphan children if any to the init process */
@@ -76,8 +73,8 @@ static void def_handler_entry(int signal)
         break;
     }
     case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in unattended zombies */
-        /* Ignore the request for init process */
-        if (target_proc->pid == 1)
+        /* Ignore kill request for idle and init process */
+        if (target_proc->pid == 0 || target_proc->pid == 1)
             return;
         /* Remove the process from the ready queue */
         erase(&pc->ready_que, (struct Node*)target_proc);

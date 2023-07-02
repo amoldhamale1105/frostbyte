@@ -7,12 +7,13 @@
 static struct Process process_table[PROC_TABLE_SIZE];
 static int pid_num = 1;
 static struct ProcessControl pc;
+static bool shutdown = false;
 
 static struct Process* find_unused_slot(void)
 {
     struct Process* process = NULL;
-
-    for (int i = 0; i < PROC_TABLE_SIZE; i++)
+    /* The first process slot is reserved only for the idle process */
+    for (int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         if (process_table[i].state == UNUSED){
             process = process_table + i;
@@ -67,10 +68,9 @@ static struct Process* alloc_new_process(void)
 static void init_idle_process(void)
 {
     struct Process* process;
-    /* Find an unused slot in the process table */
-    process = find_unused_slot();
-    /* Since this is the first process, ensure that the first slot is received */
-    ASSERT(process == process_table);
+    /* Allocate the first slot in the process table */
+    process = process_table;
+    ASSERT(process != NULL);
 
     process->state = RUNNING;
     process->pid = 0;
@@ -104,17 +104,23 @@ void init_process(void)
     init_user_process();
 }
 
-static void switch_process(struct Process* prev, struct Process* curr)
+static void switch_process(struct Process* existing, struct Process* new)
 {
     /* Switch the page tables to point to the new user process memory */
-    switch_vm(curr->page_map);
+    switch_vm(new->page_map);
     /* Swap the currently running process with the new process chosen by the scheduler */
-    swap(&prev->sp, curr->sp);
+    swap(&existing->sp, new->sp);
     /* The previous process will resume execution here once swapped in unless it's the first time it's running
        In the first run, x30 will point to trap_return. In subsequent scheduling cycles, the return address will point here
        User processes will have this address in x30 and won't be overwritten with trap_return address in subsequent cycles
        The idle process (PID 0) will always resume here even the first time because there's no redirection defined to trap_return for it
        The rationale is that idle process always runs in kernel space i.e. EL1 not in userspace unlike other processes */
+    
+    /* Use the x5 register to notify the idle process in event of a system shutdown */
+    if (existing->pid == 0 && shutdown){
+        if (existing->reg_context != NULL)
+            existing->reg_context->x5 = 1;
+    }
 }
 
 static void schedule(void)
@@ -125,9 +131,19 @@ static void schedule(void)
     /* While returning to user mode from kernel mode, check for any pending signals on the process about to be scheduled */
     if (!empty(&pc.ready_que))
         check_pending_signals((struct Process*)front(&pc.ready_que));
-    /* In absence of other processes in the queue, the idle process will be chosen to run
-       Otherwise pick the process at the head of the ready queue */
-    new_process = empty(&pc.ready_que) ? process_table : (struct Process*)pop_front(&pc.ready_que);
+    /* Pick the process at the head of the ready queue for scheduling. If the queue is empty, choose the idle process
+       Halt the system if the ready and wait queues are both empty and a termination signal has been issued to the idle process */
+    if (empty(&pc.ready_que)){
+        if (empty(&pc.wait_list)){
+            if (process_table->signals & (1 << SIGTERM)){
+                shutdown = true;
+                printk("Shutting down...\n");
+            }
+        }
+        new_process = process_table;
+    }
+    else
+        new_process = (struct Process*)pop_front(&pc.ready_que);
 
     new_process->state = RUNNING;
     pc.curr_process = new_process;
@@ -442,9 +458,28 @@ int exec(struct Process* process, char* name, const char* args[])
 
 int kill(struct Process *process, int signal)
 {
-    if (process == NULL || process->state == UNUSED)
-        return -1;
     if (signal <= 0 || signal > TOTAL_SIGNALS-1)
+        return -1;
+    /* A negative pid system call, meant for system wide signalling */
+    if (process == NULL){
+        int curr_pid = get_curr_process()->pid;
+        for(int i = 1; i < PROC_TABLE_SIZE; i++)
+        {
+            /* The signal is not meant for the process which sent it */
+            if (process_table[i].pid == curr_pid)
+                continue;
+            if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED)){
+                process_table[i].signals |= (1 << signal);
+                if (signal == SIGTERM)
+                    printk("Stopping process %s (%d)\n", process_table[i].name, process_table[i].pid);
+            }
+        }
+        /* Prepare to terminate the idle process, since a system wide SIGTERM implies a shutdown request */
+        if (signal == SIGTERM)
+            process_table->signals |= (1 << signal);
+        return 0;
+    }
+    if (process->pid == 1 || process->state == UNUSED)
         return -1;
     process->signals |= (1 << signal);
     return 0;

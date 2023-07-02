@@ -1,6 +1,7 @@
 #include "libc.h"
 #include <stddef.h>
 #include <process/process.h>
+#include <io/print.h>
 
 void push_back(struct List *list, struct Node *node)
 {
@@ -85,6 +86,22 @@ struct Node *remove(struct List *list, int event)
 bool empty(struct List *list)
 {
     return list->head == NULL;
+}
+
+void print_list(struct List* list, const char* name)
+{
+    if (list->head == NULL){
+        printk("%s empty\n", name);
+        return;
+    }
+    struct Node* node = list->head;
+    printk("%s => ");
+    while (node != NULL)
+    {
+        printk("%d->", ((struct Process*)node)->pid);
+        node = node->next;
+    }
+    printk("end\n");
 }
 
 int strlen(const char *str)

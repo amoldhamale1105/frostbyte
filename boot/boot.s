@@ -13,7 +13,7 @@ _start:
     beq kernel_entry
 
 end:
-    # TODO infinite loop with recursive calls. Could be done differently perhaps? 
+    # Equivalent to a NOP except that the system has stopped or stalled
     b end               
 
 kernel_entry:
@@ -84,4 +84,13 @@ idle:
     # This is normally the point where the mode will switch to EL0 (userspace) on occurence of a timer interrupt
     # The idle process (PID 0) when running, resumes here when it finishes servicing outstanding interrupts
     wfi
+    # Check if a shutdown event has occurred which will be notified to idle process via the x5 register
+    cmp x5, #1
+    beq halt
     b idle
+
+halt:
+    bl shutdown_banner
+    # Disable all interrupts
+    msr daifset, #2
+    b end

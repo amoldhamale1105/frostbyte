@@ -63,12 +63,16 @@ void handler(struct ContextFrame* ctx)
     uint32_t irq;
     /* Whether the exception occured because of a userspace process */
     bool user_except = ((ctx->spsr & PSTATE_MODE_MASK) == 0);
+    struct Process* curr_proc = get_curr_process();
+
+    /* Save register context for idle process from the kernel stack */
+    if (curr_proc->pid == 0)
+        curr_proc->reg_context = ctx;
 
     switch (ctx->trapno)
     {
     case 1:
         if (user_except){
-            struct Process* curr_proc = get_curr_process();
             printk("%x: Process (PID %d) resulted in a synchronous exception. Terminating\n", ctx->elr, curr_proc->pid);
             /* Although this exit call occurs in kernel space, it is meant to terminate the current user process which caused this exception */
             exit(curr_proc, false);
@@ -104,7 +108,6 @@ void handler(struct ContextFrame* ctx)
         break;
     default:
         if (user_except){
-            struct Process* curr_proc = get_curr_process();
             printk("%x: Process (PID %d) resulted in an unknown exception. Terminating\n", ctx->elr, curr_proc->pid);
             exit(curr_proc, false);
         }

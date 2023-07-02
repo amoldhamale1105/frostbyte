@@ -44,6 +44,7 @@ user:
 	cd ./user/list && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
+	cd ./user/shutdown && $(MAKE)
 	cd ./user/test && $(MAKE)
 
 user_clean:
@@ -54,6 +55,7 @@ user_clean:
 	cd ./user/list && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/kill && $(MAKE) clean
+	cd ./user/shutdown && $(MAKE) clean
 	cd ./user/test && $(MAKE) clean
 
 clean: user_clean

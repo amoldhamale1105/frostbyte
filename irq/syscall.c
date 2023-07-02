@@ -111,7 +111,10 @@ static int64_t sys_proc_data(int64_t* argv)
 
 static int64_t sys_kill(int64_t* argv)
 {
-    return kill(get_process(argv[0]), argv[1]);
+    struct Process* process = get_process(argv[0]);
+    if (process == NULL && (int)argv[0] >= 0)
+        return -1;
+    return kill(process, argv[1]);
 }
 
 void init_system_call(void)

@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     }
     if (argc >= 2){
         if (argc > 2){
-            /* Creating the delusion of an argument as option */
+            /* Used to create the delusion of an option with argument */
             signal = abs(atoi(argv[1]));
             pid = atoi(argv[2]);
         }
