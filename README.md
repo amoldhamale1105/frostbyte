@@ -55,7 +55,7 @@ On older qemu versions, you may have to use machine type as `raspi3` instead of 
 
 At the time of writing this readme, the OS boots up to a shell on the serial console where you can run commands to interact with the system.  
 
-![image](https://github.com/amoldhamale1105/pious/assets/78597991/29f316ae-84e9-496a-9b49-4a10a868d802)
+![Frostbyte](https://github.com/amoldhamale1105/frostbyte/assets/78597991/4a01b30d-7c95-4639-9cf4-cc98d943de5e)
 
 ## Features and Capabilities
 This content is valid as of July 3, 2023. It might be outdated for current version of the kernel. Will be creating releases soon to keep track of features in a specific version  
