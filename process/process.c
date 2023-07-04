@@ -110,14 +110,14 @@ static void switch_process(struct Process* existing, struct Process* new)
     switch_vm(new->page_map);
     /* Swap the currently running process with the new process chosen by the scheduler */
     swap(&existing->sp, new->sp);
-    /* The previous process will resume execution here once swapped in unless it's the first time it's running
+    /* The new process in previous context will resume execution here once swapped in unless it's the first time it's running
        In the first run, x30 will point to trap_return. In subsequent scheduling cycles, the return address will point here
        User processes will have this address in x30 and won't be overwritten with trap_return address in subsequent cycles
        The idle process (PID 0) will always resume here even the first time because there's no redirection defined to trap_return for it
        The rationale is that idle process always runs in kernel space i.e. EL1 not in userspace unlike other processes */
     
     /* Use the x5 register to notify the idle process in event of a system shutdown */
-    if (existing->pid == 0 && shutdown){
+    if (shutdown && existing->pid == 0){
         if (existing->reg_context != NULL)
             existing->reg_context->x5 = 1;
     }

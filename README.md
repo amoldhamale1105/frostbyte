@@ -1,7 +1,9 @@
-# FrostByte
-A multi-tasking kernel developed from scratch for 64-bit ARM architecture. The current version is tested on a virtualized raspberry pi 3b. The kernel behaves and works on the emulated board exactly as it would on real hardware because of a full system emulation using qemu.  
+# Frostbyte
+A minimalistic multi-tasking OS developed from scratch for 64-bit ARM architecture. The current version is tested on a virtualized raspberry pi 3b. The OS behaves and works on the emulated board exactly as it would on real hardware because of a full system emulation using qemu.  
 
 ## Overview
+Frostbyte comprises of a kernel, some userspace apps and a shell as one of the apps facilitating interaction with the system  
+
 The source code is broadly categorized into 2 sections:  
 - The kernel source tree at the top level
 - The **user** directory containing userspace apps and libraries
@@ -47,11 +49,37 @@ A successful build will create **kernel8.img** and **frostbyte** files in the **
 
 At the project root, run the following command to start the qemu based virtual raspberry pi 3b with our kernel image
 ```
-qemu-system-aarch64 -m 1G -M raspi3b -serial stdio -kernel bin/kernel8.img
+qemu-system-aarch64 -m 1G -M raspi3b -serial mon:stdio -kernel bin/kernel8.img -nographic
 ```
-At the time of writing this readme, **init.bin** has been setup as the first userspace process (PID 1) which prints it's status 5 times at 1 sec interval and exits, handing over control to the idle process (PID 0)  
+On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.  
+
+At the time of writing this readme, the OS boots up to a shell on the serial console where you can run commands to interact with the system.  
 
 ![image](https://github.com/amoldhamale1105/pious/assets/78597991/29f316ae-84e9-496a-9b49-4a10a868d802)
 
+## Features and Capabilities
+This content is valid as of July 3, 2023. It might be outdated for current version of the kernel. Will be creating releases soon to keep track of features in a specific version  
+
+You can execute commands and programs on the shell by simply entering their name with or without executable suffix. All executables on frostbyte need to have the `.bin` suffix to be qualified as an executable  
+
+Programs can be run in the foreground or background. To run a program in background we follow the standard practice of appending an `&` at the end. The shell then prints the pid and name of the process it just pushed to background and gets ready for next user input  
+
+The command list below will describe additional features  
+
+### Commands
+All commands are POSIX compliant but with limited options and arguments  
+- **ls**        list files in root directory
+- **ps**        list active processes on the system
+- **cat**       read a file by printing its contents to the shell  
+- **kill**      send a signal to a process
+- **shutdown**  shutdown the system
+
 ## Contributions
-The kernel is currently work in progress. I have more features planned and will develop them as and when possible. Until then, kindly review the existing source code, play around, test and suggest improvements. I have added elaborate and copious comments in the code to make it easily comprehensible. Do get in touch with me in case of any questions or suggestions amoldhamale1105@gmail.com
+At this stage, Frostbyte is a hobby project and you are welcome to use and contribute to it if you find it interesting enough.
+
+As a potential contributor you are welcome to 
+- Review pull requests and known issues from the **Issues** tab and check if you can resolve any of them
+- Create new issues for bugs or feature requests so that either I or others in the community can get to it 
+- Raise PRs to address existing issues, to fix potential bugs or make any improvements to existing source code
+
+I have added elaborate comments in the code to make it easily comprehensible and I'd like anyone who is contributing to continue that practice for newly added code. Do get in touch with me in case of any questions or suggestions amoldhamale1105@gmail.com
