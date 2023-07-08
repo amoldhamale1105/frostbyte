@@ -1,5 +1,6 @@
 #include "keyboard.h"
 #include "uart.h"
+#include "print.h"
 #include <process/process.h>
 
 static struct KeyBuffer key_buf = {
@@ -34,8 +35,23 @@ char read_key_buffer(void)
 
 void capture_key(void)
 {
-    /* Capture the pressed key from uart module and push it to the circular buffer */
-    write_key_buffer(read_char());
+    /* stdin should only work for current foreground process */
+    struct Process* fg_proc = get_fg_process();
+    if (fg_proc == NULL)
+        return;
+    /* Capture the pressed key from uart module and check for special characters */
+    char key = read_char();
+    switch (key)
+    {
+    case ASCII_CTRL_C:
+        printk("%s: Terminating on keyboard interrupt\n", fg_proc->name);
+        kill(fg_proc, SIGINT);
+        break;
+    
+    default: /* Push the key to circular buffer */
+        write_key_buffer(key);
+        break;
+    }
     /* Wake up all processes sleeping on keyboard input event */
     wake_up(KEYBOARD_INPUT);
 }

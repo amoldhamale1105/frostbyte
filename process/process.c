@@ -180,7 +180,9 @@ struct Process *get_curr_process(void)
 
 struct Process *get_fg_process(void)
 {
-    return pc.fg_process;
+    if (!(pc.fg_process->state == UNUSED || pc.fg_process->state == KILLED))
+        return pc.fg_process;
+    return NULL;
 }
 
 struct Process *get_process(int pid)

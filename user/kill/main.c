@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 
     int ret = kill(pid, signal);
     if (ret < 0)
-        printf("%s: Failed to send signal %d to PID %d\n", signal, pid);
+        printf("%s: Failed to send signal %d to PID %d\n", argv[0], signal, pid);
     
     return 0;
 }

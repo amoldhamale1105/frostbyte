@@ -39,7 +39,7 @@ int main(void)
                     exec(cmd_buf+cmd_pos, (const char**)args);
                 else{
                     /* Don't make the parent wait since it's a background process, so that the shell becomes available to subsequent commands */
-                    if (arg_count > 0 && args[arg_count-1][0] == '&'){
+                    if (arg_count > 0 && strlen(args[arg_count-1]) == 1 && args[arg_count-1][0] == '&'){
                         printf("[%s] %d\n", echo_buf+cmd_pos, cmd_pid);
                         continue;
                     }

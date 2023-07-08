@@ -295,7 +295,7 @@ static void inode_put(struct Inode* inode)
 
 void close_file(struct Process* process, int fd)
 {
-    if (fd < 0)
+    if (fd < 0 || process->fd_table[fd] == NULL)
         return;
     
     /* Algorithm iput => unlink the inode by decrementing reference count */
