@@ -74,6 +74,7 @@ static void init_idle_process(void)
 
     process->state = RUNNING;
     process->pid = 0;
+    process->daemon = true;
     /* Since this is the first process of the system, page map is initialized with current val of TTBR0 register */
     process->page_map = TO_VIRT(read_gdt());
     pc.curr_process = process;
@@ -91,6 +92,7 @@ static void init_user_process(void)
     memcpy(process->name, (char*)filename, strlen(filename)-(MAX_EXTNAME_BYTES+1));
     process->ppid = 0;
     process->state = READY;
+    process->daemon = true;
     /* Initialize signal handlers for the init process */
     init_handlers(process);
     push_back(&pc.ready_que, (struct Node*)process);
@@ -147,6 +149,8 @@ static void schedule(void)
 
     new_process->state = RUNNING;
     pc.curr_process = new_process;
+    if (!new_process->daemon)
+        pc.fg_process = new_process;
 
     switch_process(old_process, new_process);
 }
@@ -172,6 +176,11 @@ void trigger_scheduler(void)
 struct Process *get_curr_process(void)
 {
     return pc.curr_process;
+}
+
+struct Process *get_fg_process(void)
+{
+    return pc.fg_process;
 }
 
 struct Process *get_process(int pid)
@@ -374,9 +383,15 @@ int exec(struct Process* process, char* name, const char* args[])
     int arg_count = 0;
     int arg_size = 0;
     if (args != NULL){
+        int new_arg_size;
         while (args[arg_count] != NULL)
         {
-            arg_size += (strlen(args[arg_count])+1);
+            new_arg_size = strlen(args[arg_count]);
+            if (new_arg_size == 1 && args[arg_count][0] == '&'){
+                process->daemon = true;
+                break;
+            }
+            arg_size += (new_arg_size+1);
             arg_count++;
         }
     }
