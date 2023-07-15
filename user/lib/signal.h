@@ -12,4 +12,7 @@
 #define SIGSTOP     19
 #define SIGUNUSED   31
 
+#define SIG_DFL ((void (*)(int))0)     /* default signal handling */
+#define SIG_IGN ((void (*)(int))1)     /* ignore signal */
+
 #endif

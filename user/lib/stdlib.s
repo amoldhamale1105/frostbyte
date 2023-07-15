@@ -1,4 +1,45 @@
 .section .text
+# Macro to save 31 GPRs on the stack
+.macro save_context
+    sub sp, sp, #(32*8)
+    stp x0, x1, [sp]
+    stp x2, x3, [sp, #(16*1)]
+    stp x4, x5, [sp, #(16*2)]
+    stp x6, x7, [sp, #(16*3)]
+    stp x8, x9, [sp, #(16*4)]
+    stp x10, x11, [sp, #(16*5)]
+    stp x12, x13, [sp, #(16*6)]
+    stp x14, x15, [sp, #(16*7)]
+    stp x16, x17, [sp, #(16*8)]
+    stp x18, x19, [sp, #(16*9)]
+    stp x20, x21, [sp, #(16*10)]
+    stp x22, x23, [sp, #(16*11)]
+    stp x24, x25, [sp, #(16*12)]
+    stp x26, x27, [sp, #(16*13)]
+    stp x28, x29, [sp, #(16*14)]
+    str x30, [sp, #(16*15)]
+.endm
+# Macro to restore 31 GPRs from the stack in resepctive registers
+.macro restore_context    
+    ldp x0, x1, [sp]
+    ldp x2, x3, [sp, #(16*1)]
+    ldp x4, x5, [sp, #(16*2)]
+    ldp x6, x7, [sp, #(16*3)]
+    ldp x8, x9, [sp, #(16*4)]
+    ldp x10, x11, [sp, #(16*5)]
+    ldp x12, x13, [sp, #(16*6)]
+    ldp x14, x15, [sp, #(16*7)]
+    ldp x16, x17, [sp, #(16*8)]
+    ldp x18, x19, [sp, #(16*9)]
+    ldp x20, x21, [sp, #(16*10)]
+    ldp x22, x23, [sp, #(16*11)]
+    ldp x24, x25, [sp, #(16*12)]
+    ldp x26, x27, [sp, #(16*13)]
+    ldp x28, x29, [sp, #(16*14)]
+    ldr x30, [sp, #(16*15)]
+    add sp, sp, #(32*8)
+.endm
+
 .global memset
 .global memcpy
 .global memmove
@@ -21,6 +62,7 @@
 .global get_active_procs
 .global get_proc_data
 .global kill
+.global signal
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -374,4 +416,46 @@ kill:
 
     # Restore the stack
     add sp, sp, #16
+    ret
+
+signal:
+    # Allocate 24 bytes on the stack to accomodate the args to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the args on the stack beforehand
+    sub sp, sp, #24
+    stp x0, x1, [sp]
+    # Pass third argument as signal handler proxy routine which will be invoked by the kernel
+    ldr x2, =sighandler_proxy
+    str x2, [sp, #16]
+    # Set the syscall index to 17 (handle signal) in x8
+    mov x8, #17
+    # Load the arg count in x0
+    mov x0, #3
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #24
+    ret
+
+sighandler_proxy:
+    save_context
+    # Load signal value in x0 as arg to custom handler and custom handler address in x1 saved by the kernel on the stack
+    ldp x0, x1, [sp, #(16*16)]
+    # Branch from x1 register to user specified custom handler
+    blr x1
+    # Save register values of previous process context which are going to be overwritten during proxy request
+    ldr x1, [sp, #8]
+    ldr x8, [sp, #(16*4)]
+    stp x1, x8, [sp, #(16*16)]
+    restore_context
+    # Set special request code (signal handler proxy restore) in x8
+    mov x8, #101
+    # Load x1 with the pointer to selective previous context data
+    mov x1, sp
+    # Operating system trap
+    svc #0
+    # We should never reach here. The process should resume execution at the point where it was previously interrupted
     ret

@@ -1,5 +1,15 @@
 #include "shell.h"
-#include "stdbool.h"
+#include "signal.h"
+
+void sighandler(int signum)
+{
+    if (signum == SIGINT){
+        printf("^C\n");
+        interrupted = true;
+        /* Re-register handler since kernel resets it to default after first invokation */
+        signal(SIGINT, sighandler);
+    }
+}
 
 int main(void)
 {
@@ -7,13 +17,19 @@ int main(void)
     char echo_buf[MAX_CMD_BUF_SIZE];
     int cmd_size = 0;
 
-    /* Run the shell indefinitely while the system is up */
+    /* Register custom handler for keyboard interrupt so that the shell does not get terminated on Ctrl+C from user */
+    signal(SIGINT, sighandler);
+
     while (1)
     {
         printf("root@frostbyte:~# ");
         memset(cmd_buf, 0, sizeof(cmd_buf));
         memset(echo_buf, 0, sizeof(echo_buf));
         cmd_size = read_cmd(cmd_buf, echo_buf);
+        if (interrupted){
+            interrupted = false;
+            continue;
+        }
         
         if (cmd_size > 0){
             int cmd_pos, arg_count;

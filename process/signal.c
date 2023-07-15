@@ -8,6 +8,8 @@ static SIGHANDLER def_handlers[TOTAL_SIGNALS];
 static struct Process* target_proc = NULL;
 /* Process control data structure with global scope within this file for default handlers */
 static struct ProcessControl* pc = NULL;
+/* Global proxy signal handler managing custom handler invokation followed by context restoration */
+static SIGHANDLER_PROXY proxy_handler = NULL;
 
 void check_pending_signals(struct Process* process)
 {
@@ -19,8 +21,25 @@ void check_pending_signals(struct Process* process)
                 break;
             if (process->signals & (1 << i)){
                 if (process->handlers[i] != NULL){
-                    target_proc = process;
-                    process->handlers[i](i);
+                    /* Custom handlers should be invoked in user mode only which can be deduced from the handler address */
+                    if (!((uint64_t)(process->handlers[i]) & KERNEL_BASE)){
+                        switch_vm(process->page_map);
+                        int64_t el0_addr = process->reg_context->elr;
+                        /* Enable the proxy handler to run on eret which will invoke custom handler and restore previous context */
+                        process->reg_context->elr = (int64_t)proxy_handler;
+                        /* Save data required for proxy handler on user stack since proxy handler will run in user mode
+                           We avoid saving data in registers because redirection to proxy handler is not known to the process
+                           Thus, there is a substantial chance of data corruption if the kernel modifies any of the GPRs */
+                        process->reg_context->sp0 -= 24;
+                        int64_t* sp0 = (int64_t*)process->reg_context->sp0;
+                        sp0[0] = i;
+                        sp0[1] = (int64_t)process->handlers[i];
+                        sp0[2] = el0_addr;
+                    }
+                    else{ /* Run default handler in kernel context */
+                        target_proc = process;
+                        process->handlers[i](i);
+                    }
                 }
                 /* Clear the signal by XORing specific bit now that it is addressed and replace the handler with default */
                 process->signals ^= (1 << i);
@@ -29,15 +48,6 @@ void check_pending_signals(struct Process* process)
         }
     }
 }
-
-void register_handler(struct Process* process, int signal, SIGHANDLER new_handler)
-{
-    /* Check the range and disallow custom handling for SIGKILL since it's meant to kill a process forcibly */
-    if (signal > 0 && signal < TOTAL_SIGNALS-1 && signal != SIGKILL)
-        process->handlers[signal] = new_handler;
-}
-
-/* Built-in handler definitions */
 
 static void def_handler_entry(int signal)
 {    
@@ -85,6 +95,24 @@ static void def_handler_entry(int signal)
     default:
         break;
     }
+}
+
+void register_handler(struct Process* process, int signal, SIGHANDLER new_handler)
+{
+    /* Check the range and disallow custom handling for SIGKILL and SIGSTOP since they cannot be caught or ignored */
+    if (signal > 0 && signal < TOTAL_SIGNALS-1 && !(signal == SIGKILL || signal == SIGSTOP)){
+        if (new_handler == SIG_IGN)
+            process->handlers[signal] = NULL;
+        else if (new_handler == SIG_DFL)
+            process->handlers[signal] = def_handler_entry;
+        else
+            process->handlers[signal] = new_handler;
+    }
+}
+
+void set_sighandler_proxy(SIGHANDLER_PROXY handler)
+{
+    proxy_handler = handler;
 }
 
 void init_def_handlers(struct ProcessControl* proc_ctrl)

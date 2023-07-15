@@ -10,8 +10,8 @@ struct Page
     struct Page* next;
 };
 
-#define KERNEL_BASE     0xffff000000000000
-#define USERSPACE_BASE  0x400000
+#define KERNEL_BASE     0xffff000000000000  /* Kernel base virtual address */
+#define USERSPACE_BASE  0x0000000000400000  /* Userspace base virtual address */
 
 #define TO_VIRT(physical_addr)  ((uint64_t)physical_addr + KERNEL_BASE)
 #define TO_PHY(virt_addr)       ((uint64_t)virt_addr - KERNEL_BASE)

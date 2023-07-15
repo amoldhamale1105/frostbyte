@@ -117,6 +117,24 @@ static int64_t sys_kill(int64_t* argv)
     return kill(process, argv[1]);
 }
 
+static int64_t sys_signal(int64_t* argv)
+{
+    register_handler(get_curr_process(), argv[0], (SIGHANDLER)argv[1]);
+    set_sighandler_proxy((SIGHANDLER_PROXY)argv[2]);
+    return 0;
+}
+
+static void sigproxy_restore(struct ContextFrame *ctx)
+{
+    int64_t* sp0 = (int64_t*)ctx->sp0;
+    /* Restore the overwritten values in registers x1 and x8, and previous EL0 program counter */
+    ctx->x1 = sp0[0];
+    ctx->x8 = sp0[1];
+    ctx->elr = sp0[2];
+    /* Reclaim space on the stack used to save proxy handler and proxy restore arguments */
+    ctx->sp0 += 24;
+}
+
 void init_system_call(void)
 {
     syscall_list[0] = sys_write;
@@ -136,6 +154,7 @@ void init_system_call(void)
     syscall_list[14] = sys_active_procs;
     syscall_list[15] = sys_proc_data;
     syscall_list[16] = sys_kill;
+    syscall_list[17] = sys_signal;
 }
 
 void system_call(struct ContextFrame *ctx)
@@ -148,6 +167,10 @@ void system_call(struct ContextFrame *ctx)
     /* Get the pointer to arguments passed to the function */
     int64_t* argv = (int64_t*)ctx->x1;
 
+    if (index == SIG_PROXY_REQUEST){
+        sigproxy_restore(ctx);
+        return;
+    }
     /* If not a valid syscall, return an error code -1 */
     if (argc < 0 || (index < 0 || index > TOTAL_SYSCALL_FUNCTIONS-1)){
         ctx->x0 = -1;

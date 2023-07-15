@@ -1,6 +1,8 @@
 #include "shell.h"
 #include "stdbool.h"
 
+bool interrupted = false;
+
 int get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_args)
 {
     char* cmd_ptr = NULL;
@@ -70,6 +72,8 @@ int read_cmd(char* buf, char* echo_buf)
     while (1)
     {
         cmd_ch = getchar();
+        if (interrupted)
+            break;
 
         /* Stop reading and exit when enter key (carriage return) is pressed by user */
         if (cmd_ch == '\r'){
@@ -95,7 +99,7 @@ int read_cmd(char* buf, char* echo_buf)
             buf_size--;
         }
         else{
-            if (cmd_ch == ASCII_ESCAPE)
+            if (cmd_ch == ASCII_CTRL_C || cmd_ch == ASCII_ESCAPE)
                 continue;
             *shell_echo = cmd_ch;
             printf("%s", shell_echo);
