@@ -68,9 +68,10 @@ The command list below will describe additional features
 
 ### Commands
 All commands are POSIX compliant but with limited options and arguments  
+- **uname**     show kernel info
 - **ls**        list files in root directory
 - **ps**        list active processes on the system
-- **cat**       read a file by printing its contents to the shell  
+- **cat**       read a file by printing its contents to the shell
 - **kill**      send a signal to a process
 - **shutdown**  shutdown the system
 

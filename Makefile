@@ -1,4 +1,5 @@
-export PREFIX := aarch64-none-elf-
+export TARGET_ARCH := aarch64
+export PREFIX := $(TARGET_ARCH)-none-elf-
 export CC := $(PREFIX)gcc
 export LINK := $(PREFIX)ld
 export OBJ_COPY := $(PREFIX)objcopy
@@ -12,6 +13,7 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 export MOUNT_POINT := $(PWD)/temp
 export KERNEL_NAME := frostbyte
+export KERNEL_VERSION := 1.0.0
 export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/libc_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
@@ -44,6 +46,7 @@ user:
 	cd ./user/list && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
+	cd ./user/uname && $(MAKE)
 	cd ./user/shutdown && $(MAKE)
 	cd ./user/test && $(MAKE)
 
@@ -55,6 +58,7 @@ user_clean:
 	cd ./user/list && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/kill && $(MAKE) clean
+	cd ./user/uname && $(MAKE) clean
 	cd ./user/shutdown && $(MAKE) clean
 	cd ./user/test && $(MAKE) clean
 
