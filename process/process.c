@@ -149,7 +149,8 @@ static void schedule(void)
 
     new_process->state = RUNNING;
     pc.curr_process = new_process;
-    if (!new_process->daemon)
+    /* Set scheduled process as current foreground process if it identifies itself as one and no other process is assuming one */
+    if (!new_process->daemon && pc.fg_process == NULL)
         pc.fg_process = new_process;
 
     switch_process(old_process, new_process);
@@ -180,6 +181,8 @@ struct Process *get_curr_process(void)
 
 struct Process *get_fg_process(void)
 {
+    if (pc.fg_process == NULL)
+        return NULL;
     if (!(pc.fg_process->state == UNUSED || pc.fg_process->state == KILLED))
         return pc.fg_process;
     return NULL;
@@ -295,7 +298,11 @@ void exit(struct Process* process, bool sig_handler_req)
     struct Process* parent = get_process(process->ppid);
     if (parent != NULL)
         parent->signals |= (1 << SIGCHLD);
-
+    /* Abdicate status as current system foreground process if it was one */
+    if (pc.fg_process != NULL){
+        if (process->pid == pc.fg_process->pid)
+            pc.fg_process = NULL;
+    }
     push_back(&pc.zombies, (struct Node*)process);
 
     /* Wake up the process sleeping in wait to clean up this zombie process */
@@ -332,10 +339,10 @@ void wait(int pid)
                             zombie->fd_table[i]->inode = NULL;
                     }
                 }
-                /* No need to clear the memory used in the process table slot used by the zombie because that will anyway be overwritten
-                   when allocating a new process. The find_unused_slot() function only cares if the state is unused or not to reallocate
-                   a particular slot, so why not save some unnecessay CPU cycles requried for memsetting the slot area to 0 */
+                /* Set process state to unused and reset daemon status to avoid getting carried over to another process using the same slot
+                   We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
                 zombie->state = UNUSED;
+                zombie->daemon = false;
                 break;
             }
         }
@@ -356,6 +363,11 @@ int fork(void)
     /* Copy the process name and set parent process ID */
     memcpy(process->name, pc.curr_process->name, sizeof(process->name));
     process->ppid = pc.curr_process->pid;
+    /* Yield current system foreground process status if holding one, which will allow the child to claim it if required */
+    if (pc.fg_process != NULL){
+        if (pc.curr_process->pid == pc.fg_process->pid)
+            pc.fg_process = NULL;
+    }
     /* Copy the text, data, stack and other regions of the parent to the child process' memory
        We copy only one page because the current design of the kernel holds all process regions in a single page */
     if (!copy_uvm(process->page_map, pc.curr_process->page_map, PAGE_SIZE))
@@ -404,6 +416,11 @@ int exec(struct Process* process, char* name, const char* args[])
             new_arg_size = strlen(args[arg_count]);
             if (new_arg_size == 1 && args[arg_count][0] == '&'){
                 process->daemon = true;
+                /* Yield the foreground status if inherited from the parent during a forking event */
+                if (pc.fg_process != NULL){
+                    if (process->pid == pc.fg_process->pid)
+                        pc.fg_process = NULL;
+                }
                 break;
             }
             arg_size += (new_arg_size+1);

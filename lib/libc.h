@@ -29,6 +29,7 @@ void push_back(struct List* list, struct Node* node);
 struct Node* pop_front(struct List* list);
 struct Node* remove(struct List* list, const struct Node* node);
 struct Node* front(const struct List* list);
+bool contains(const struct List* list, const struct Node* node);
 bool empty(const struct List* list);
 /* Debugging utility function for kernel list data structures */
 void print_list(const struct List* list, const char* name);

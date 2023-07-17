@@ -79,7 +79,9 @@ static void def_handler_entry(int signal)
                         target_proc->fd_table[i]->inode = NULL;
                 }
             }
+            /* Set process state to unused and reset daemon status to avoid it getting carried over to another process using this slot */
             target_proc->state = UNUSED;
+            target_proc->daemon = false;
         }
         break;
     }
@@ -89,6 +91,11 @@ static void def_handler_entry(int signal)
             return;
         /* Remove the process from the ready queue */
         remove(&pc->ready_que, (struct Node*)target_proc);
+        /* Yield the current foreground status if holding one, for other processes to claim */
+        if (pc->fg_process != NULL){
+            if (target_proc->pid == pc->fg_process->pid)
+                pc->fg_process = NULL;
+        }
         target_proc->state = KILLED;
         break;
     case SIGCHLD:
@@ -129,5 +136,6 @@ void init_def_handlers(struct ProcessControl* proc_ctrl)
 
 void init_handlers(struct Process *process)
 {
+    process->signals = 0;
     memcpy(process->handlers, def_handlers, sizeof(SIGHANDLER)*TOTAL_SIGNALS);
 }

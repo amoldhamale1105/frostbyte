@@ -58,6 +58,20 @@ struct Node* front(const struct List* list)
     return list->head;
 }
 
+bool contains(const struct List *list, const struct Node *node)
+{
+    const struct Node* curr_node = list->head;
+
+    while (curr_node != NULL)
+    {
+        if (node == curr_node)
+            return true;
+        curr_node = curr_node->next;
+    }
+    
+    return false;
+}
+
 struct Node *remove_evt(struct List* list, struct Node** const head_prev, int event)
 {
     struct Node* node = list->head;
