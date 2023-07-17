@@ -49,6 +49,7 @@ user:
 	cd ./user/uname && $(MAKE)
 	cd ./user/shutdown && $(MAKE)
 	cd ./user/test && $(MAKE)
+	cd ./user/sampleapp && $(MAKE)
 
 user_clean:
 	cd ./user/lib && $(MAKE) clean
@@ -61,6 +62,7 @@ user_clean:
 	cd ./user/uname && $(MAKE) clean
 	cd ./user/shutdown && $(MAKE) clean
 	cd ./user/test && $(MAKE) clean
+	cd ./user/sampleapp && $(MAKE) clean
 
 clean: user_clean
 	rm -f $(BUILD_DIR)/*

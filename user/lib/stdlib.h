@@ -48,8 +48,11 @@ enum En_ProcessState
 #define ASCII_LOWERCASE_START 97
 #define ASCII_LOWERCASE_END 122
 #define ASCII_UPPERCASE_OFFSET 32
+#define ASCII_BACKSPACE 127
+#define ASCII_ESCAPE 27
 
 int printf(const char* fmt, ...);
+int scanf(const char *fmt, ...);
 char* itoa(int);
 char* uitoa(uint32_t);
 char* xtoa(uint64_t);
@@ -62,6 +65,8 @@ int strlen(const char* str);
 char to_upper(char ch);
 void to_upper_str(char* str);
 int atoi(char* str);
+uint32_t atoui(char* str);
+uint64_t atox(char* str);
 int64_t power(int base, int exp);
 int abs(int num);
 

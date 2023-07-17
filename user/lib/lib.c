@@ -1,5 +1,8 @@
 #include "stdlib.h"
 #include "stdbool.h"
+#include "stddef.h"
+
+#define MAX_SCAN_BUF_SIZE 1024
 
 int strlen(const char* str)
 {
@@ -51,6 +54,54 @@ int atoi(char *str)
     return neg ? -num : num;
 }
 
+uint32_t atoui(char *str)
+{
+    uint32_t num = 0;
+    
+    if (*str == '-' || *str == '+'){
+        if (*str == '-')
+            return 0;
+        str++;
+    }
+    int digits = strlen(str);
+    int order = digits-1;
+
+    while (*str)
+    {
+        if (*str < BASE_NUMERIC_ASCII || *str > BASE_NUMERIC_ASCII+9)
+            return 0;
+        int digit = (int)*str - BASE_NUMERIC_ASCII;
+        num += digit * power(10, order--);
+        str++;
+    }
+    
+    return num;
+}
+
+uint64_t atox(char *str)
+{
+    uint64_t num = 0;
+    
+    if (*str == '-' || *str == '+'){
+        if (*str == '-')
+            return 0;
+        str++;
+    }
+    int digits = strlen(str);
+    int order = digits-1;
+
+    while (*str)
+    {
+        if (*str < BASE_NUMERIC_ASCII || *str > BASE_NUMERIC_ASCII+9)
+            return 0;
+        int digit = (int)*str - BASE_NUMERIC_ASCII;
+        num += digit * power(10, order--);
+        str++;
+    }
+    
+    return num;
+}
+
 int64_t power(int base, int exp)
 {
     if (exp == 0)
@@ -67,4 +118,149 @@ int64_t power(int base, int exp)
 int abs(int num)
 {
     return num < 0 ? -num : num;
+}
+
+static int read_input(char* buf, int max_size)
+{
+    char shell_echo[4] = {0};
+    int write_count = 0;
+    
+    while (1)
+    {
+        if (write_count >= max_size-1){
+            buf[max_size-1] = 0;
+            break;
+        }
+        char ch = getchar();
+
+        if (ch == '\r'){
+            shell_echo[0] = '\r';
+            shell_echo[1] = '\n';
+            printf("%s", shell_echo);
+            /* Null terminate the character echo buffer for upcoming character */
+            shell_echo[1] = 0;
+            buf[write_count] = 0;
+            break;
+        }
+        else if (ch == ' '){
+            *shell_echo = ch;
+            printf("%s", shell_echo);
+            /* Null terminate a word if it was being recorded and continue counting key strokes */
+            if (write_count > 0)
+                buf[write_count++] = 0;
+        }
+        else if (ch == ASCII_BACKSPACE){
+            if (write_count == 0)
+                continue;
+            /* Use a combination of backspace and space characters to clear the last typed character on the screen */
+            shell_echo[0] = '\b';
+            shell_echo[1] = ' ';
+            shell_echo[2] = '\b';
+            printf("%s", shell_echo);
+            shell_echo[1] = 0;
+            /* Erase the last read character from the buffer */
+            buf[--write_count] = 0;
+        }
+        else{
+            if (ch == ASCII_ESCAPE)
+                continue;
+            *shell_echo = ch;
+            printf("%s", shell_echo);
+            buf[write_count++] = ch;
+        }
+    }
+
+    return write_count;
+}
+
+int scanf(const char *fmt, ...)
+{
+    va_list ap;
+    const char* p;
+    char buf[MAX_SCAN_BUF_SIZE] = {0};
+    int written, pos = 0, assigned = 0;
+    char* sptr;
+    int* iptr;
+    char* cptr;
+    uint64_t* xptr;
+    uint32_t* uptr;
+    
+    va_start(ap, fmt);
+    written = read_input(buf, MAX_SCAN_BUF_SIZE);
+
+    for(p = fmt; *p; p++)
+    {
+        if (*p != '%'){
+            if (*p == '\r' || *p == '\n' || *p == '\t' || *p == ' ')
+                continue;
+            break;
+        }
+        if (pos >= written){
+            memset(buf, 0, written);
+            /* Persist until user provides a legit input. Ignore carriage returns without data */
+            while (!(written = read_input(buf, MAX_SCAN_BUF_SIZE)));
+            pos = 0;
+        }
+
+        switch (*++p)
+        {
+        case 'c':
+            cptr = va_arg(ap, char*);
+            if (cptr != NULL){
+                *cptr = buf[pos];
+                pos += 2;
+                assigned++;
+                continue;
+            }
+            break;
+        case 's':
+            sptr = va_arg(ap, char*);
+            if (sptr != NULL){
+                int slen = strlen(buf+pos);
+                memcpy(sptr, buf+pos, slen);
+                pos += (slen+1);
+                assigned++;
+                continue;
+            }
+            break;
+        case 'd':
+            iptr = va_arg(ap, int*);
+            if (iptr != NULL){
+                int slen = strlen(buf+pos);
+                *iptr = atoi(buf+pos);
+                pos += (slen+1);
+                assigned++;
+                continue;
+            }
+            break;
+        case 'u':
+            uptr = va_arg(ap, uint32_t*);
+            if (uptr != NULL){
+                int slen = strlen(buf+pos);
+                *uptr = atoui(buf+pos);
+                pos += (slen+1);
+                assigned++;
+                continue;
+            }
+            break;
+        case 'x':
+            xptr = va_arg(ap, uint64_t*);
+            if (xptr != NULL){
+                int slen = strlen(buf+pos);
+                *xptr = atox(buf+pos);
+                pos += (slen+1);
+                assigned++;
+                continue;
+            }
+            break;
+        default:
+            assigned = -1;
+            break;
+        }
+        /* This is needed for a switch statement because a regular break won't exit the outer loop */
+        break;
+    }
+
+    va_end(ap);
+    return assigned;
 }

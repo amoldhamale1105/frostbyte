@@ -252,21 +252,34 @@ void sleep(int event)
     push_back(&pc.wait_list, (struct Node*)process);
     /* Call the scheduler to replace the current process (which just slept) with other process on the ready queue */
     schedule();
+    /* If the process was awakened by the kernel to service an important request, put it back to sleep
+       An organically awakened process on occurence of specific event will have the event field reset to NONE */
+    if (process->event != NONE)
+        sleep(process->event);
 }
 
 void wake_up(int event)
 {
-    struct Process* process;
+    struct Process* process, *prev_node = NULL;
 
+    /* If an event occurs while a process is on the ready queue servicing a request, clear the event field */
+    process = (struct Process*)find_evt(pc.ready_que.head, event);
+    while (process != NULL)
+    {
+        process->event = NONE;
+        process = (struct Process*)find_evt((struct Node*)process->next, event);
+    }
+    
     /* remove first process waiting on event from the wait list */
-    process = (struct Process*)remove(&pc.wait_list, event);
+    process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&prev_node, event);
     /* Place it on the ready queue and check if any other processes waiting on the same event
        If they're sleeping, remove from wait list and place them on the ready queue as well */
     while (process != NULL)
     {
+        process->event = NONE;
         process->state = READY;
         push_back(&pc.ready_que, (struct Node*)process);
-        process = (struct Process*)remove(&pc.wait_list, event);
+        process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&prev_node, event);
     }
 }
 
@@ -295,12 +308,12 @@ void exit(struct Process* process, bool sig_handler_req)
 
 void wait(int pid)
 {
-    struct Process* zombie;
+    struct Process* zombie, *prev_node = NULL;
 
     while (1)
     {
         if (!empty(&pc.zombies)){
-            zombie = (struct Process*)remove(&pc.zombies, pid);
+            zombie = (struct Process*)remove_evt(&pc.zombies, (struct Node**)&prev_node, pid);
             if (zombie != NULL){
                 /* There is a chance a signal handler cleaned up the process resources already */
                 if (zombie->state != KILLED)
@@ -487,6 +500,12 @@ int kill(struct Process *process, int signal)
                 continue;
             if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED)){
                 process_table[i].signals |= (1 << signal);
+                /* Wake up sleeping processes to act on the shutdown event */
+                if (process_table[i].state == SLEEP){
+                    remove(&pc.wait_list, (struct Node*)&process_table[i]);
+                    process_table[i].state = READY;
+                    push_back(&pc.ready_que, (struct Node*)&process_table[i]);
+                }
                 if (signal == SIGTERM)
                     printk("Stopping process %s (%d)\n", process_table[i].name, process_table[i].pid);
             }
@@ -498,6 +517,14 @@ int kill(struct Process *process, int signal)
     }
     if (process->pid == 1 || process->state == UNUSED)
         return -1;
+    
     process->signals |= (1 << signal);
+    /* Wake up the process if sleeping and place it on the ready queue, for it to act on the received signal */
+    if (process->state == SLEEP){
+        remove(&pc.wait_list, (struct Node*)process);
+        process->state = READY;
+        push_back(&pc.ready_que, (struct Node*)process);
+    }
+
     return 0;
 }

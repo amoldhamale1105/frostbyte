@@ -7,6 +7,7 @@
 
 #define SIGHUP  1
 #define SIGINT  2
+#define SIGABRT 6
 #define SIGKILL 9
 #define SIGTERM 15
 #define SIGCHLD 17

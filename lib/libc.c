@@ -28,14 +28,14 @@ struct Node *pop_front(struct List *list)
     return node;
 }
 
-struct Node *erase(struct List *list, struct Node *node)
+struct Node *remove(struct List *list, const struct Node *node)
 {
     struct Node* curr_node = list->head;
     struct Node* prev = NULL;
 
     while (curr_node != NULL)
     {
-        if ((uint64_t)node == (uint64_t)curr_node){
+        if (node == curr_node){
             if (prev == NULL)
                 list->head = curr_node->next;
             else
@@ -58,16 +58,27 @@ struct Node* front(const struct List* list)
     return list->head;
 }
 
-struct Node *remove(struct List *list, int event)
+struct Node *remove_evt(struct List* list, struct Node** const head_prev, int event)
 {
     struct Node* node = list->head;
     struct Node* prev = NULL;
 
+    if (head_prev != NULL){
+        if (*head_prev != NULL){
+            node = (*head_prev)->next;
+            prev = *head_prev;
+        }
+    }
+    
     while (node != NULL)
     {
         if (((struct Process*)node)->event == event){
-            if (prev == NULL)
-                list->head = node->next;
+            if (prev == NULL){
+                if (list->head == node)
+                    list->head = node->next;
+                else
+                    return NULL;
+            }
             else
                 prev->next = node->next;
 
@@ -79,16 +90,32 @@ struct Node *remove(struct List *list, int event)
         prev = node;
         node = node->next;
     }
+    if (head_prev != NULL)
+        *head_prev = prev;
     
     return node;
 }
 
-bool empty(struct List *list)
+struct Node *find_evt(const struct Node *head, int event)
+{
+    const struct Node* node = head;
+
+    while (node != NULL)
+    {
+        if (((struct Process*)node)->event == event)
+            break;
+        node = node->next;
+    }
+    
+    return (struct Node*)node;
+}
+
+bool empty(const struct List *list)
 {
     return list->head == NULL;
 }
 
-void print_list(struct List* list, const char* name)
+void print_list(const struct List* list, const char* name)
 {
     if (list->head == NULL){
         printk("%s empty\n", name);
