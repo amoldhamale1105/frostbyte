@@ -1,13 +1,13 @@
-#ifndef LIB_H
-#define LIB_H
+#ifndef FLIB_H
+#define FLIB_H
 
 #define BASE_NUMERIC_ASCII 48
 #define BASE_CAPS_ALPHA_ASCII 65
 #define stringify(sequence) #sequence
 #define stringify_value(val) stringify(val)
 
-#include "stdint.h"
-#include "stdarg.h"
+#include <stdint.h>
+#include <stdarg.h>
 
 struct DirEntry {
     uint8_t name[8];

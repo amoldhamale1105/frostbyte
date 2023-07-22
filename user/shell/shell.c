@@ -1,5 +1,5 @@
 #include "shell.h"
-#include "stdbool.h"
+#include <stdbool.h>
 
 bool interrupted = false;
 

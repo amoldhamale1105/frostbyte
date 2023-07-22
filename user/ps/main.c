@@ -1,4 +1,4 @@
-#include "stdlib.h"
+#include "flib.h"
 
 static char state_rep(int state)
 {

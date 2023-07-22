@@ -1,7 +1,7 @@
 #include "memory.h"
 #include <debug/debug.h>
 #include <io/print.h>
-#include <lib/libc.h>
+#include <lib/lib.h>
 #include <fs/file.h>
 #include <process/process.h>
 

@@ -1,4 +1,4 @@
-#include "libc.h"
+#include "lib.h"
 #include <stddef.h>
 #include <process/process.h>
 #include <io/print.h>

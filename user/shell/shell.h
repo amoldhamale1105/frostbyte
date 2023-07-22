@@ -1,9 +1,9 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-#include "stdlib.h"
-#include "stddef.h"
-#include "stdbool.h"
+#include "flib.h"
+#include <stddef.h>
+#include <stdbool.h>
 
 #define MAX_CMD_BUF_SIZE 1024
 #define MAX_PROG_ARGS 100

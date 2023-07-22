@@ -1,6 +1,6 @@
 /* The first user process (init.bin) with PID 1 */
-#include "stdlib.h"
-#include "stddef.h"
+#include "flib.h"
+#include <stddef.h>
 
 int main(void)
 {

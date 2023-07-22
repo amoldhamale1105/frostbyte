@@ -1,4 +1,4 @@
-PROGRAM_NAME := stdlib
+PROGRAM_NAME := flib
 STATIC_LIB := $(PREFIX)ar
 LIBFLAGS := rcs
 
@@ -6,7 +6,7 @@ SRC_DIR := .
 INCLUDES := -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
-OBJS := $(BUILD_DIR)/print.o $(BUILD_DIR)/stdlib.o $(BUILD_DIR)/lib.o
+OBJS := $(BUILD_DIR)/print.o $(BUILD_DIR)/flib.o $(BUILD_DIR)/flib_asm.o
 
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 

@@ -3,7 +3,7 @@
 
 #include <irq/handler.h>
 #include <fs/file.h>
-#include <lib/libc.h>
+#include <lib/lib.h>
 #include "signal.h"
 
 struct Process

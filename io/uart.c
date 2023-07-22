@@ -1,6 +1,6 @@
 #include "uart.h"
 #include "keyboard.h"
-#include <lib/libc.h>
+#include <lib/lib.h>
 
 unsigned char read_char(void)
 {

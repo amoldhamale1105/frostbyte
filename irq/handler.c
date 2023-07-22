@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <io/print.h>
-#include <lib/libc.h>
+#include <lib/lib.h>
 #include <irq/irq.h>
 #include <io/uart.h>
 #include <irq/syscall.h>

@@ -1,7 +1,7 @@
 #include <io/uart.h>
 #include <io/print.h>
 #include <debug/debug.h>
-#include <lib/libc.h>
+#include <lib/lib.h>
 #include <irq/handler.h>
 #include <memory/memory.h>
 #include <fs/file.h>
