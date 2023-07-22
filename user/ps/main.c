@@ -29,10 +29,37 @@ static char state_rep(int state)
     return state_ch;
 }
 
+static void print_usage(void)
+{
+    printf("Usage:\n");
+    printf("\tps [OPTION] [pid_count]\n");
+    printf("Report a snapshot of current processes\n\n");
+    printf("\t-h\tdisplay this help and exit\n");
+}
+
 int main(int argc, char** argv)
 {
     int display_num = DEF_DISPLAY_PROCS;
     if (argc > 1){
+        if (argv[1][0] == '-'){
+            if (strlen(argv[1]) == 2){
+                switch (argv[1][1])
+                {
+                case 'h':
+                    print_usage();
+                    return 0;
+                default:
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                    printf("Try \'%s -h\' for more information\n", argv[0]);
+                    return 1;
+                }
+            }
+            else{
+                printf("%s: bad usage\n", argv[0]);
+                printf("Try \'%s -h\' for more information\n", argv[0]);
+                return 1;
+            }
+        }
         int num_param = atoi(argv[1]);
         if (num_param <= 0){
             printf("%s: %s Invalid argument\n", argv[0], argv[1]);

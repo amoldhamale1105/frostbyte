@@ -1,10 +1,40 @@
 #include "stdlib.h"
 
+static void print_usage(void)
+{
+    printf("Usage:\n");
+    printf("\tcat [OPTION] <FILE>\n");
+    printf("Concatenate FILE to standard output (shell)\n\n");
+    printf("\t-h\tdisplay this help and exit\n");
+}
+
 int main(int argc, char** argv)
 {
     if (argc < 2){
-        printf("%s: needs file name as argument\n", argv[0]);
+        printf("%s: bad usage\n", argv[0]);
+        printf("Try \'%s -h\' for more information\n", argv[0]);
         return 1;
+    }
+    if (argc > 1){
+        if (argv[1][0] == '-'){
+            if (strlen(argv[1]) == 2){
+                switch (argv[1][1])
+                {
+                case 'h':
+                    print_usage();
+                    return 0;
+                default:
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                    printf("Try \'%s -h\' for more information\n", argv[0]);
+                    return 1;
+                }
+            }
+            else{
+                printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                printf("Try \'%s -h\' for more information\n", argv[0]);
+                return 1;
+            }
+        }
     }
     
     int filelen = strlen(argv[1]);
