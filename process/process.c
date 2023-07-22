@@ -128,14 +128,24 @@ static void switch_process(struct Process* existing, struct Process* new)
 static void schedule(void)
 {
     struct Process* old_process = pc.curr_process;
-    struct Process* new_process;
+    struct Process* new_process = NULL;
 
     /* While returning to user mode from kernel mode, check for any pending signals on the process about to be scheduled */
-    if (!empty(&pc.ready_que))
-        check_pending_signals((struct Process*)front(&pc.ready_que));
-    /* Pick the process at the head of the ready queue for scheduling. If the queue is empty, choose the idle process
+    while (!empty(&pc.ready_que))
+    {
+        new_process = (struct Process*)front(&pc.ready_que);
+        check_pending_signals(new_process);
+        /* If the checked process is still present at the head of the queue, proceed to scheduling it */
+        if ((uint64_t)new_process == (uint64_t)front(&pc.ready_que)){
+            pop_front(&pc.ready_que);
+            break;
+        }
+        /* Reset the pointer to accomodate the next process at the head of the queue */
+        new_process = NULL;
+    }
+    /* If no other process is ready to run and the queue is empty, schedule the idle process (with below exception)
        Halt the system if the ready and wait queues are both empty and a termination signal has been issued to the idle process */
-    if (empty(&pc.ready_que)){
+    if (empty(&pc.ready_que) && !new_process){
         if (empty(&pc.wait_list)){
             if (process_table->signals & (1 << SIGTERM)){
                 shutdown = true;
@@ -144,8 +154,6 @@ static void schedule(void)
         }
         new_process = process_table;
     }
-    else
-        new_process = (struct Process*)pop_front(&pc.ready_que);
 
     new_process->state = RUNNING;
     pc.curr_process = new_process;
@@ -517,7 +525,7 @@ int kill(struct Process *process, int signal)
                 continue;
             if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED)){
                 process_table[i].signals |= (1 << signal);
-                /* Wake up sleeping processes to act on the shutdown event */
+                /* Wake up sleeping processes to act on the broadcast signal */
                 if (process_table[i].state == SLEEP){
                     remove(&pc.wait_list, (struct Node*)&process_table[i]);
                     process_table[i].state = READY;
