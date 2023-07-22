@@ -1,6 +1,8 @@
 #include "flib.h"
 #include <stdbool.h>
 
+#define MAX_ITEMS_PER_ROW 5
+
 struct DirEntry entries[1024];
 
 static void print_usage(void)
@@ -41,7 +43,7 @@ int main(int argc, char** argv)
     }
     char filename[MAX_FILENAME_BYTES+MAX_EXTNAME_BYTES+2] = {0};
     char filetype;
-    int name_count = 0;
+    int name_count = 0, valid_items = 0;
     int count = read_root_dir(entries);
 
     if (count > 0){
@@ -74,10 +76,14 @@ int main(int argc, char** argv)
                 filetype = entries[i].attributes == ATTR_FILETYPE_DIRECTORY ? 'd' : 'f';
                 printf("%s\t%c           %u\r\n", filename, filetype, (uint64_t)entries[i].file_size);
             }
-            else
+            else{
+                if (valid_items > 0 && valid_items % MAX_ITEMS_PER_ROW == 0)
+                    printf("\n");
                 printf("%s\t", filename);
+            }
 
             memset(filename, 0, sizeof(filename));
+            valid_items++;
             name_count = 0;
         }
         if (!long_list)
