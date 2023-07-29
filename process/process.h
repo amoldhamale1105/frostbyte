@@ -71,7 +71,7 @@ void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);
 void wake_up(int event);
 void exit(struct Process* process, bool sig_handler_req);
-void wait(int pid);
+int wait(int pid);
 int fork(void);
 int exec(struct Process* process, char* name, const char* args[]);
 int kill(struct Process *process, int signal);

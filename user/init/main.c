@@ -8,12 +8,16 @@ int main(void)
     
     if (pid == 0) /* Child process */
         exec("SHELL.BIN", NULL);
-    else if (pid == -1)
+    else if (pid == -1){
         printf("Init process failed to fork!\n");
-    else{ /* Parent process */
-        /* Wait for the child to finish and then clean up its resources once it's done */
-        wait(pid);
+        return 1;
     }
+    
+    /* Wait for death of own children and processes orphaned by exiting parents */
+    while ((pid = wait(-1)) != -1)
+    {
+        /* Consider respawning a dead child here otherwise continue */
+    }    
 
     return 0;
 }

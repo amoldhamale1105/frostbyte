@@ -329,6 +329,8 @@ void exit(struct Process* process, bool sig_handler_req)
     struct Process* parent = get_process(process->ppid);
     if (parent != NULL)
         parent->signals |= (1 << SIGCHLD);
+    /* Handover potential orphan children if any to the init process */
+    switch_parent(process->pid, 1);
     /* Abdicate status as current system foreground process if it was one */
     if (pc.fg_process != NULL){
         if (process->pid == pc.fg_process->pid)
@@ -344,13 +346,35 @@ void exit(struct Process* process, bool sig_handler_req)
         schedule();
 }
 
-void wait(int pid)
+int wait(int pid)
 {
     struct Process* zombie, *prev_node = NULL;
+    /* Return failure if the given process does not exist or if the PID value is invalid */
+    if (pid >= 0 && get_process(pid) == NULL)
+        return -1;
+    if (pid < -1)
+        return -1;
 
     while (1)
     {
         if (!empty(&pc.zombies)){
+            /* Search for first available zombie child */
+            if (pid == -1){
+                bool has_child = false;
+                for(int i = 1; i < PROC_TABLE_SIZE; i++)
+                {
+                    if (process_table[i].state != UNUSED && process_table[i].ppid == pc.curr_process->pid){
+                        has_child = true;
+                        if (contains(&pc.zombies, (struct Node*)&process_table[i])){
+                            pid = process_table[i].pid;
+                            break;
+                        }
+                    }
+                }
+                /* If the current process doesn't have any children, there's no need to wait */
+                if (!has_child)
+                    return -1;
+            }
             zombie = (struct Process*)remove_evt(&pc.zombies, (struct Node**)&prev_node, pid);
             if (zombie != NULL){
                 /* There is a chance a signal handler cleaned up the process resources already */
@@ -380,6 +404,8 @@ void wait(int pid)
 
         sleep(ZOMBIE_CLEANUP);
     }
+
+    return pid;
 }
 
 int fork(void)

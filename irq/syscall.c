@@ -42,8 +42,7 @@ static int64_t sys_exit(int64_t* argv)
 
 static int64_t sys_wait(int64_t* argv)
 {
-    wait(argv[0]);
-    return 0;
+    return wait(argv[0]);
 }
 
 static int64_t sys_open_file(int64_t* argv)

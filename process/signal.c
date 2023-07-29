@@ -58,8 +58,6 @@ static void def_handler_entry(int signal)
     case SIGTERM: { /* Graceful termination where orphans are reassigned, parent informed and memory cleaned */
         /* Remove the process from the ready queue */
         remove(&pc->ready_que, (struct Node*)target_proc);
-        /* Handover orphan children if any to the init process */
-        switch_parent(target_proc->pid, 1);
         /* Invoke exit for the process to unblock the parent if it is waiting */
         exit(target_proc, true);
         /* If the parent wasn't waiting or hasn't got to cleaning the child resources yet, perform the cleanup */
@@ -89,8 +87,9 @@ static void def_handler_entry(int signal)
         /* Ignore kill request for idle and init process */
         if (target_proc->pid == 0 || target_proc->pid == 1)
             return;
-        /* Remove the process from the ready queue */
+        /* Remove the process from the ready queue and handover children if any to the init process */
         remove(&pc->ready_que, (struct Node*)target_proc);
+        switch_parent(target_proc->pid, 1);
         /* Yield the current foreground status if holding one, for other processes to claim */
         if (pc->fg_process != NULL){
             if (target_proc->pid == pc->fg_process->pid)

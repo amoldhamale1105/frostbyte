@@ -78,7 +78,7 @@ int close_file(int fd);
 uint32_t get_file_size(int fd);
 uint32_t read_file(int fd, void* buffer, uint32_t size);
 int fork(void);
-void wait(int pid);
+int wait(int pid);
 int exec(char* prog_file, const char* args[]);
 void exit(void);
 int kill(int pid, int signum);
