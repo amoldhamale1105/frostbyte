@@ -34,7 +34,6 @@ enum En_ProcessState
     SLEEP,
     KILLED
 };
-#define DEF_DISPLAY_PROCS 10
 
 #define ENTRY_AVAILABLE 0
 #define ENTRY_DELETED 0xe5
@@ -87,7 +86,7 @@ void signal(int signum, void (*handler)(int));
 char getchar(void);
 int getpid(void);
 int getppid(void);
-void get_proc_data(int pid, int* ppid, int* state, char* procname);
+int get_proc_data(int pid, int* ppid, int* state, char* procname, char* procargs);
 int read_root_dir(void* buf);
 int get_active_procs(int* pid_list);
 

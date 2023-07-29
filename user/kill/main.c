@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     }
     
     int state = -1;
-    get_proc_data(pid, NULL, &state, NULL);
+    get_proc_data(pid, NULL, &state, NULL, NULL);
     if (pid <= 0 || pid == getpid() || state <= UNUSED){
         printf("%s: (%d) - No such process\n", argv[0], pid);
         return 1;

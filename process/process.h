@@ -34,7 +34,7 @@ struct ProcessControl
 };
 
 #define STACK_SIZE PAGE_SIZE
-#define PROC_TABLE_SIZE 50
+#define PROC_TABLE_SIZE 100
 #define USERSPACE_CONTEXT_SIZE (12*8) /* 12 GPRs saved on the stack when context switch done by scheduler (see swap function) */
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */
 #define MAX_OPEN_FILES 100
@@ -65,7 +65,7 @@ void trap_return(void);
 struct Process* get_curr_process(void);
 struct Process *get_fg_process(void);
 struct Process* get_process(int pid);
-void get_proc_data(int pid, int* ppid, int* state, char* name);
+int get_proc_data(int pid, int* ppid, int* state, char* name, char* args_buf);
 int get_active_pids(int* pid_list);
 void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);

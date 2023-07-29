@@ -134,6 +134,8 @@ static void schedule(void)
     while (!empty(&pc.ready_que))
     {
         new_process = (struct Process*)front(&pc.ready_que);
+        if (process_table->signals & (1 << SIGTERM))
+            printk("Stopping process %s (%d)\n", new_process->name, new_process->pid);
         check_pending_signals(new_process);
         /* If the checked process is still present at the head of the queue, proceed to scheduling it */
         if ((uint64_t)new_process == (uint64_t)front(&pc.ready_que)){
@@ -210,8 +212,10 @@ struct Process *get_process(int pid)
     return process;
 }
 
-void get_proc_data(int pid, int *ppid, int *state, char *name)
+int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
 {
+    int args_size = 0;
+
     for (int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         if (process_table[i].state != UNUSED && process_table[i].pid == pid){
@@ -221,9 +225,25 @@ void get_proc_data(int pid, int *ppid, int *state, char *name)
                 *state = process_table[i].state;
             if (name != NULL)
                 memcpy(name, process_table[i].name, strlen(process_table[i].name));
+            /* Retrieve the program arguments from the bottom of allocated process kernel stack */
+            char* arg = (char*)process_table[i].stack;
+            /* Omit the first argument since we've already captured program name */
+            arg += (strlen(arg)+1);
+            int arg_len;
+            while (*(arg+args_size) != 0)
+            {
+                arg_len = strlen(arg);
+                if (args_buf != NULL){
+                    memcpy(args_buf+args_size, arg+args_size, arg_len);
+                    args_buf[arg_len] = 0;
+                }
+                args_size += (arg_len+1);
+            }
             break;
         }
     }
+
+    return args_size;
 }
 
 int get_active_pids(int* pid_list)
@@ -233,8 +253,11 @@ int get_active_pids(int* pid_list)
        The idle process should be always runnning in kernel context until the system is shutdown */
     for(int i = 1; i < PROC_TABLE_SIZE; i++)
     {
-        if (process_table[i].state != UNUSED)
-            pid_list[count++] = process_table[i].pid;
+        if (process_table[i].state != UNUSED){
+            if (pid_list != NULL)
+                pid_list[count] = process_table[i].pid;
+            count++;
+        }
     }
 
     return count;
@@ -531,8 +554,6 @@ int kill(struct Process *process, int signal)
                     process_table[i].state = READY;
                     push_back(&pc.ready_que, (struct Node*)&process_table[i]);
                 }
-                if (signal == SIGTERM)
-                    printk("Stopping process %s (%d)\n", process_table[i].name, process_table[i].pid);
             }
         }
         /* Prepare to terminate the idle process, since a system wide SIGTERM implies a shutdown request */

@@ -71,6 +71,8 @@ At the time of writing this readme, the OS boots up to a shell on the serial con
 
 ![Frostbyte](https://github.com/amoldhamale1105/frostbyte/assets/78597991/4a01b30d-7c95-4639-9cf4-cc98d943de5e)
 
+To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
+
 ## Features and Capabilities
 This content is valid as of July 23, 2023. It might be outdated for current version of the kernel. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for a specific version and encompassing features  
 > **__Note:__** This section is a more of a user guide than a development guide. Custom user programs can be written for frostbyte similar to the programs developed for various commands. A separate development guide and API documentation will be created shortly with all the custom library functions and system calls. In the meantime, if you want to develop your own userspace app for frostbyte, check out the header `user/lib/flib.h` for prototypes and `user/test` and `user/sampleapp` as reference applications
@@ -80,17 +82,17 @@ This content is valid as of July 23, 2023. It might be outdated for current vers
 - Userspace apps run at exception level 0 (EL0)
 - Synchronous and asynchronous exception handling
 - Interrupt handling and interrupt vector table
-- Timer interrupt based FIFO scheduling
+- Timer interrupt based FIFO scheduler
 - Paging and virtual memory management
 - FAT16 filesystem support
 - VFS (Virtual filesystem)
-- SysV analogous **init** startup
 - Serial console interactive shell
 - POSIX compliant system calls and commands
 - POSIX signal handling framework
+- Custom signal handlers in user programs
 - Custom standard library funtions
 - Executing custom programs with command-line arguments
-- User inputs to custom programs using `scanf`
+- User inputs (stdin) to foreground user programs
 - Foreground and background process management
 
 You can execute commands and programs on the shell by simply entering their name with or without executable suffix. Commands entered on the shell are case insensitive. All executables on frostbyte need to have the `.bin` suffix to be qualified as an executable. However, during execution, usage of the `.bin` suffix is optional  
