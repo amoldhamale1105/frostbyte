@@ -11,18 +11,32 @@ void sighandler(int signum)
     }
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
+    char username[100] = {0};
+    char prompt_suffix = '$';
     char cmd_buf[MAX_CMD_BUF_SIZE];
     char echo_buf[MAX_CMD_BUF_SIZE];
     int cmd_size = 0;
+    /* Default username in case shell is invoked without the '-u' option */
+    memcpy(username, "user", 4);
+
+    if (argc > 1){
+        if (strlen(argv[1]) == 2 && memcmp("-u", argv[1], 2) == 0){
+            int namelen = strlen(argv[2]);
+            memcpy(username, argv[2], namelen);
+            username[namelen] = 0;
+            if (namelen == 4 && memcmp(username, "root", namelen) == 0)
+                prompt_suffix = '#';
+        }
+    }
 
     /* Register custom handler for keyboard interrupt so that the shell does not get terminated on Ctrl+C from user */
     signal(SIGINT, sighandler);
 
     while (1)
     {
-        printf("root@frostbyte:~# ");
+        printf("%s@%s:~%c ", username, stringify_value(NAME), prompt_suffix);
         memset(cmd_buf, 0, sizeof(cmd_buf));
         memset(echo_buf, 0, sizeof(echo_buf));
         cmd_size = read_cmd(cmd_buf, echo_buf);

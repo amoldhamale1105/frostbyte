@@ -35,15 +35,16 @@ void check_pending_signals(struct Process* process)
                         sp0[0] = i;
                         sp0[1] = (int64_t)process->handlers[i];
                         sp0[2] = el0_addr;
+                        /* Reset handler in process table entry to default */
+                        process->handlers[i] = def_handlers[i];
                     }
                     else{ /* Run default handler in kernel context */
                         target_proc = process;
                         process->handlers[i](i);
                     }
                 }
-                /* Clear the signal by XORing specific bit now that it is addressed and replace the handler with default */
+                /* Clear the signal by XORing specific bit, now that it is addressed */
                 process->signals ^= (1 << i);
-                process->handlers[i] = def_handlers[i];
             }
         }
     }

@@ -41,6 +41,7 @@ kernel: $(OBJS)
 user:
 	cd ./user/lib && $(MAKE)
 	cd ./user/init && $(MAKE)
+	cd ./user/login && $(MAKE)
 	cd ./user/shell && $(MAKE)
 	cd ./user/ps && $(MAKE)
 	cd ./user/list && $(MAKE)
@@ -54,6 +55,7 @@ user:
 user_clean:
 	cd ./user/lib && $(MAKE) clean
 	cd ./user/init && $(MAKE) clean
+	cd ./user/login && $(MAKE) clean
 	cd ./user/shell && $(MAKE) clean
 	cd ./user/ps && $(MAKE) clean
 	cd ./user/list && $(MAKE) clean

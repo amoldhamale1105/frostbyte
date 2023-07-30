@@ -49,6 +49,7 @@ enum En_ProcessState
 #define ASCII_UPPERCASE_OFFSET 32
 #define ASCII_BACKSPACE 127
 #define ASCII_ESCAPE 27
+#define ASCII_CTRL_C 0x03
 
 int printf(const char* fmt, ...);
 int scanf(const char *fmt, ...);

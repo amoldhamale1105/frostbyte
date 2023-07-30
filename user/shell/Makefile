@@ -1,4 +1,4 @@
-PROGRAM_NAME := shell
+PROGRAM_NAME := sh
 SRC_DIR := .
 INCLUDES := -I. -I../lib
 BUILD_DIR := ./build
@@ -22,4 +22,4 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.s
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) -DNAME=$(KERNEL_NAME) $(INCLUDES) $(CFLAGS) -c $< -o $@

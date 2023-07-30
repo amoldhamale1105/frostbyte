@@ -232,10 +232,10 @@ int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
             int arg_len;
             while (*(arg+args_size) != 0)
             {
-                arg_len = strlen(arg);
+                arg_len = strlen(arg+args_size);
                 if (args_buf != NULL){
                     memcpy(args_buf+args_size, arg+args_size, arg_len);
-                    args_buf[arg_len] = 0;
+                    *(args_buf+args_size+arg_len) = 0;
                 }
                 args_size += (arg_len+1);
             }

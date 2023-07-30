@@ -4,10 +4,11 @@
 
 int main(void)
 {
+    printf("\nWelcome to %s (A minimalistic aarch64 kernel)\n\n", stringify_value(NAME));
     int pid = fork();
     
     if (pid == 0) /* Child process */
-        exec("SHELL.BIN", NULL);
+        exec("LOGIN.BIN", NULL);
     else if (pid == -1){
         printf("Init process failed to fork!\n");
         return 1;

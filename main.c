@@ -19,8 +19,6 @@ int dummy_glob = 30;
 void kmain(void)
 {
     init_uart();
-    printk("\nWelcome to FrostByte (A minimalistic aarch64 kernel)\n\n");
-
     init_mem();
     init_fs();
     init_system_call();

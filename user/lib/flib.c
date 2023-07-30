@@ -162,7 +162,7 @@ static int read_input(char* buf, int max_size)
             buf[--write_count] = 0;
         }
         else{
-            if (ch == ASCII_ESCAPE)
+            if (ch == ASCII_CTRL_C || ch == ASCII_ESCAPE)
                 continue;
             *shell_echo = ch;
             printf("%s", shell_echo);
