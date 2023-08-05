@@ -45,7 +45,8 @@ enum En_SleepEvent
     SLEEP_SYSCALL,
     ZOMBIE_CLEANUP,
     KEYBOARD_INPUT,
-    DAEMON_INPUT
+    DAEMON_INPUT,
+    FG_PAUSED
 };
 
 enum En_ProcessState

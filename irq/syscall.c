@@ -78,9 +78,16 @@ static int64_t sys_exec(int64_t* argv)
 
 static int64_t sys_keyboard_read(int64_t* argv)
 {
+    struct Process* curr_process = get_curr_process();
     /* If the process waiting for keyboard input is not a foreground process, put it to sleep */
-    if (get_curr_process()->daemon)
+    if (curr_process->daemon)
         sleep(DAEMON_INPUT);
+    else{
+        while (curr_process->pid != get_fg_process()->pid)
+        {
+            sleep(FG_PAUSED);
+        }
+    }
     return read_key_buffer();
 }
 

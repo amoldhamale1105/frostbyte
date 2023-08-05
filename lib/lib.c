@@ -22,7 +22,10 @@ struct Node *pop_front(struct List *list)
 
     if (list->head != NULL){
         node = list->head;
-        list->head = node->next;
+        if (list->tail == node)
+            list->head = list->tail = NULL;
+        else
+            list->head = node->next;
     }
 
     return node;
@@ -36,14 +39,20 @@ struct Node *remove(struct List *list, const struct Node *node)
     while (curr_node != NULL)
     {
         if (node == curr_node){
-            if (prev == NULL)
-                list->head = curr_node->next;
-            else
-                prev->next = curr_node->next;
-
-            if (curr_node->next == NULL)
-                list->tail = prev;
-            
+            if (prev == NULL){
+                if (list->tail == curr_node)
+                    list->head = list->tail = NULL;
+                else
+                    list->head = curr_node->next;
+            }
+            else{
+                if (list->tail == curr_node){
+                    list->tail = prev;
+                    prev->next = NULL;
+                }
+                else
+                    prev->next = curr_node->next;
+            }
             break;
         }
         prev = curr_node;
@@ -88,17 +97,19 @@ struct Node *remove_evt(struct List* list, struct Node** const head_prev, int ev
     {
         if (((struct Process*)node)->event == event){
             if (prev == NULL){
-                if (list->head == node)
-                    list->head = node->next;
+                if (list->tail == node)
+                    list->head = list->tail = NULL;
                 else
-                    return NULL;
+                    list->head = node->next;
             }
-            else
-                prev->next = node->next;
-
-            if (node->next == NULL)
-                list->tail = prev;
-            
+            else{
+                if (list->tail == node){
+                    list->tail = prev;
+                    prev->next = NULL;
+                }
+                else
+                    prev->next = node->next;
+            }
             break;
         }
         prev = node;

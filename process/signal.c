@@ -81,6 +81,8 @@ static void def_handler_entry(int signal)
             /* Set process state to unused and reset daemon status to avoid it getting carried over to another process using this slot */
             target_proc->state = UNUSED;
             target_proc->daemon = false;
+            /* Remove entry in list of zombies */
+            remove(&pc->zombies, (struct Node*)target_proc);
         }
         break;
     }
@@ -91,11 +93,18 @@ static void def_handler_entry(int signal)
         /* Remove the process from the ready queue and handover children if any to the init process */
         remove(&pc->ready_que, (struct Node*)target_proc);
         switch_parent(target_proc->pid, 1);
+        /* Inform the parent */
+        struct Process* parent = get_process(target_proc->ppid);
+        if (parent != NULL)
+            parent->signals |= (1 << SIGCHLD);
         /* Yield the current foreground status if holding one, for other processes to claim */
         if (pc->fg_process != NULL){
             if (target_proc->pid == pc->fg_process->pid)
                 pc->fg_process = NULL;
         }
+        /* Wake up processes that might be paused while this one was running in the foreground */
+        if (!target_proc->daemon)
+            wake_up(FG_PAUSED);
         target_proc->state = KILLED;
         break;
     case SIGCHLD:

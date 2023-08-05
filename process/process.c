@@ -334,8 +334,11 @@ void exit(struct Process* process, bool sig_handler_req)
     /* Abdicate status as current system foreground process if it was one */
     if (pc.fg_process != NULL){
         if (process->pid == pc.fg_process->pid)
-            pc.fg_process = NULL;
+            pc.fg_process = parent && !parent->daemon ? parent : NULL;
     }
+    /* Wake up processes that might be paused while this one was running in the foreground */
+    if (!process->daemon)
+        wake_up(FG_PAUSED);
     push_back(&pc.zombies, (struct Node*)process);
 
     /* Wake up the process sleeping in wait to clean up this zombie process */
@@ -348,38 +351,41 @@ void exit(struct Process* process, bool sig_handler_req)
 
 int wait(int pid)
 {
-    struct Process* zombie, *prev_node = NULL;
+    struct Process* zombie;
+    int zpid;
     /* Return failure if the given process does not exist or if the PID value is invalid */
-    if (pid >= 0 && get_process(pid) == NULL)
-        return -1;
-    if (pid < -1)
+    if (pid == 0 || pid < -1)
         return -1;
 
     while (1)
     {
-        if (!empty(&pc.zombies)){
-            /* Search for first available zombie child */
-            if (pid == -1){
-                bool has_child = false;
-                for(int i = 1; i < PROC_TABLE_SIZE; i++)
-                {
-                    if (process_table[i].state != UNUSED && process_table[i].ppid == pc.curr_process->pid){
-                        has_child = true;
-                        if (contains(&pc.zombies, (struct Node*)&process_table[i])){
-                            pid = process_table[i].pid;
-                            break;
-                        }
+        bool has_child = false;
+        zpid = pid;
+        /* Search for first available zombie child */
+        if (pid == -1){
+            for(int i = 1; i < PROC_TABLE_SIZE; i++)
+            {
+                if (process_table[i].state != UNUSED && process_table[i].ppid == pc.curr_process->pid){
+                    has_child = true;
+                    if (contains(&pc.zombies, (struct Node*)&process_table[i])){
+                        zpid = process_table[i].pid;
+                        break;
                     }
                 }
-                /* If the current process doesn't have any children, there's no need to wait */
-                if (!has_child)
-                    return -1;
             }
-            zombie = (struct Process*)remove_evt(&pc.zombies, (struct Node**)&prev_node, pid);
+        }
+        else{ /* Verify if the PID the current process is waiting for is a valid process */
+            struct Process* process = get_process(zpid);
+            if (process != NULL && process->state != UNUSED)
+                has_child = true;
+        }
+        /* If the current process doesn't have any children, there's no need to wait */
+        if (!has_child)
+            return -1;
+    
+        if (!empty(&pc.zombies)){
+            zombie = (struct Process*)remove_evt(&pc.zombies, NULL, zpid);
             if (zombie != NULL){
-                /* There is a chance a signal handler cleaned up the process resources already */
-                if (zombie->state != KILLED)
-                    break;
                 kfree(zombie->stack);
                 free_uvm(zombie->page_map);
                 /* Decrement ref counts of all files left open by the zombie */
@@ -398,6 +404,9 @@ int wait(int pid)
                    We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
                 zombie->state = UNUSED;
                 zombie->daemon = false;
+                /* For this special wait condition, reiterate to clean up all zombie children */
+                if (pid == -1)
+                    continue;
                 break;
             }
         }
@@ -405,7 +414,7 @@ int wait(int pid)
         sleep(ZOMBIE_CLEANUP);
     }
 
-    return pid;
+    return zpid;
 }
 
 int fork(void)
