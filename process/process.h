@@ -39,6 +39,7 @@ struct ProcessControl
 #define USERSPACE_CONTEXT_SIZE (12*8) /* 12 GPRs saved on the stack when context switch done by scheduler (see swap function) */
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */
 #define MAX_OPEN_FILES 100
+#define WNOHANG 1
 
 enum En_SleepEvent
 {
@@ -67,13 +68,14 @@ void trap_return(void);
 struct Process* get_curr_process(void);
 struct Process *get_fg_process(void);
 struct Process* get_process(int pid);
+int get_status(int pid);
 int get_proc_data(int pid, int* ppid, int* state, char* name, char* args_buf);
 int get_active_pids(int* pid_list);
 void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);
 void wake_up(int event);
 void exit(struct Process* process, int status, bool sig_handler_req);
-int wait(int pid, int* wstatus);
+int wait(int pid, int* wstatus, int options);
 int fork(void);
 int exec(struct Process* process, char* name, const char* args[]);
 int kill(int pid, int signal);

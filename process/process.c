@@ -213,6 +213,12 @@ struct Process *get_process(int pid)
     return process;
 }
 
+int get_status(int pid)
+{
+    struct Process* process = get_process(pid);
+    return process != NULL ? process->status : INT32_MAX;
+}
+
 int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
 {
     int args_size = 0;
@@ -353,7 +359,7 @@ void exit(struct Process* process, int status, bool sig_handler_req)
         schedule();
 }
 
-int wait(int pid, int* wstatus)
+int wait(int pid, int* wstatus, int options)
 {
     struct Process* zombie;
     int zpid;
@@ -421,7 +427,8 @@ int wait(int pid, int* wstatus)
                 break;
             }
         }
-
+        if (options & WNOHANG)
+            return 0;
         sleep(ZOMBIE_CLEANUP);
     }
 
@@ -615,6 +622,9 @@ int kill(int pid, int signal)
         struct Process* process = get_curr_process();
         for(int i = 2; i < PROC_TABLE_SIZE; i++)
         {
+            /* The signal is not meant for the process which sent it */
+            if (process_table[i].pid == process->pid)
+                continue;
             if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED) && 
                 process->pid == process_table[i].ppid){
                 process_table[i].signals |= (1 << signal);

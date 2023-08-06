@@ -1,5 +1,6 @@
 #include "flib.h"
 #include "signal.h"
+#include <sys/wait.h>
 
 static void print_usage(void)
 {
@@ -12,7 +13,7 @@ static void print_usage(void)
 
 int main(int argc, char** argv)
 {
-    int status = 0;
+    int status = INT32_MAX;
     if (argc > 1){
         if (argv[1][0] == '-'){
             if (strlen(argv[1]) == 2){
@@ -40,5 +41,5 @@ int main(int argc, char** argv)
     if (kill(shell_pid, SIGTERM) < 0)
         return -1;
     
-    return status;
+    return status == INT32_MAX ? WEXITSTATUS(get_pstatus()) : status;
 }

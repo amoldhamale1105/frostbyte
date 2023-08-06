@@ -8,7 +8,7 @@ export CFLAGS := -g -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -n
 export LDFLAGS := -nostdlib
 
 SRC_DIR := .
-INCLUDES := -I.
+INCLUDES := -I./aarch64-none-elf/include -I./lib/gcc/aarch64-none-elf/11.2.1/include -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 export MOUNT_POINT := $(PWD)/temp
@@ -45,6 +45,7 @@ user:
 	cd ./user/shell && $(MAKE)
 	cd ./user/ps && $(MAKE)
 	cd ./user/list && $(MAKE)
+	cd ./user/echo && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
 	cd ./user/uname && $(MAKE)
@@ -60,6 +61,7 @@ user_clean:
 	cd ./user/shell && $(MAKE) clean
 	cd ./user/ps && $(MAKE) clean
 	cd ./user/list && $(MAKE) clean
+	cd ./user/echo && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/kill && $(MAKE) clean
 	cd ./user/uname && $(MAKE) clean

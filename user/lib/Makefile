@@ -3,7 +3,7 @@ STATIC_LIB := $(PREFIX)ar
 LIBFLAGS := rcs
 
 SRC_DIR := .
-INCLUDES := -I.
+INCLUDES := -I./aarch64-none-elf/include -I./lib/gcc/aarch64-none-elf/11.2.1/include -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 OBJS := $(BUILD_DIR)/print.o $(BUILD_DIR)/flib.o $(BUILD_DIR)/flib_asm.o

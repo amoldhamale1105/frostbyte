@@ -42,7 +42,7 @@ static int64_t sys_exit(int64_t* argv)
 
 static int64_t sys_wait(int64_t* argv)
 {
-    return wait(argv[0], (int*)argv[1]);
+    return wait(argv[0], (int*)argv[1], argv[2]);
 }
 
 static int64_t sys_open_file(int64_t* argv)
@@ -112,6 +112,11 @@ static int64_t sys_active_procs(int64_t* argv)
     return get_active_pids(pid_list);
 }
 
+static int64_t sys_pstatus(int64_t* argv)
+{
+    return get_status(get_curr_process()->ppid);
+}
+
 static int64_t sys_proc_data(int64_t* argv)
 {
     return get_proc_data(argv[0], (int*)argv[1], (int*)argv[2], (char*)argv[3], (char*)argv[4]);
@@ -163,6 +168,7 @@ void init_system_call(void)
     syscall_list[15] = sys_proc_data;
     syscall_list[16] = sys_kill;
     syscall_list[17] = sys_signal;
+    syscall_list[18] = sys_pstatus;
 }
 
 void system_call(struct ContextFrame *ctx)

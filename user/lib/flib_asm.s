@@ -61,6 +61,7 @@
 .global read_root_dir
 .global getppid
 .global get_active_procs
+.global get_pstatus
 .global get_proc_data
 .global kill
 .global signal
@@ -382,6 +383,25 @@ get_active_procs:
     str x0, [sp]
     # Set the syscall index to 14 (active process ID list) in x8
     mov x8, #14
+    # Load the arg count in x0
+    mov x0, #1
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #8
+    ret
+
+get_pstatus:
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #8
+    str x0, [sp]
+    # Set the syscall index to 18 (parent process status) in x8
+    mov x8, #18
     # Load the arg count in x0
     mov x0, #1
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
