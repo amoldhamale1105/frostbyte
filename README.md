@@ -113,7 +113,7 @@ Programs running in the foreground can be terminated with a keyboard interrupt b
 ### Commands
 The following POSIX commands are currently supported by **frostbyte** OS with options.  
 ```
-uname, ls, ps, cat, kill, shutdown
+uname, ls, ps, cat, kill, exit, shutdown
 ```
 Usage and short description of any command can be viewed with the `-h` option  
 For example, `uname -h` will print the following output to the terminal

@@ -326,10 +326,13 @@ void exit(struct Process* process, int status, bool sig_handler_req)
     /* Set the state to killed and event to PID for the wait function to sweep it later */
     process->state = KILLED;
     process->event = process->pid;
-    /* Inform the parent about death of child */
+    /* Inform the parent about death of child and pass low-order 8 bits of exit status */
     struct Process* parent = get_process(process->ppid);
-    if (parent != NULL)
+    if (parent != NULL){
         parent->signals |= (1 << SIGCHLD);
+        parent->status &= 0xff;
+        parent->status |= (process->status & 0xff00);
+    }
     /* Handover potential orphan children if any to the init process */
     switch_parent(process->pid, 1);
     /* Abdicate status as current system foreground process if it was one */
