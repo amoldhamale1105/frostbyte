@@ -39,6 +39,7 @@ static struct Process* alloc_new_process(void)
     memset((void*)process->stack, 0, STACK_SIZE);
 
     process->state = INIT;
+    process->status = 0;
     /* Assign PID 1 and post increment for the next process to receive the next number */
     process->pid = pid_num++;
     /* Get the context frame which is located at the top of the kernel stack */
@@ -317,11 +318,11 @@ void wake_up(int event)
     }
 }
 
-void exit(struct Process* process, bool sig_handler_req)
+void exit(struct Process* process, int status, bool sig_handler_req)
 {
     if (process == NULL || process->state == UNUSED || process->state == KILLED)
         return;
-
+    process->status |= sig_handler_req ? (status & 0x7f) : ((status & 0xff) << 8);
     /* Set the state to killed and event to PID for the wait function to sweep it later */
     process->state = KILLED;
     process->event = process->pid;
@@ -349,7 +350,7 @@ void exit(struct Process* process, bool sig_handler_req)
         schedule();
 }
 
-int wait(int pid)
+int wait(int pid, int* wstatus)
 {
     struct Process* zombie;
     int zpid;
@@ -386,6 +387,9 @@ int wait(int pid)
         if (!empty(&pc.zombies)){
             zombie = (struct Process*)remove_evt(&pc.zombies, NULL, zpid);
             if (zombie != NULL){
+                /* There's a chance some process or handler already cleaned up this zombie */
+                if (zombie->state != KILLED)
+                    break;
                 kfree(zombie->stack);
                 free_uvm(zombie->page_map);
                 /* Decrement ref counts of all files left open by the zombie */
@@ -404,9 +408,13 @@ int wait(int pid)
                    We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
                 zombie->state = UNUSED;
                 zombie->daemon = false;
-                /* For this special wait condition, reiterate to clean up all zombie children */
+                /* Return the wait status to the caller and then clear it */
+                if (wstatus != NULL)
+                    *wstatus = zombie->status;
+                zombie->status = 0;
+                /* For this special wait condition, probe for remaining zombies */
                 if (pid == -1)
-                    continue;
+                    wake_up(ZOMBIE_CLEANUP);
                 break;
             }
         }
@@ -523,7 +531,7 @@ int exec(struct Process* process, char* name, const char* args[])
     size = read_file(process, fd, (void*)USERSPACE_BASE, size);
     /* Here if the exec operation fails, only option is to exit because we've cleared the regions of original process */
     if (size == UINT32_MAX)
-        exit(process, false);
+        exit(process, 1, false);
 
     close_file(process, fd);
     /* Clear any previously set custom handlers and initialize default signal handlers for the new process */
@@ -569,14 +577,13 @@ int exec(struct Process* process, char* name, const char* args[])
     return 0;
 }
 
-int kill(struct Process *process, int signal)
+int kill(int pid, int signal)
 {
-    if (signal <= 0 || signal > TOTAL_SIGNALS-1)
+    if (signal < 0 || signal > TOTAL_SIGNALS-1)
         return -1;
-    /* A negative pid system call, meant for system wide signalling */
-    if (process == NULL){
+    if (pid == -1){ /* Send signal to all processes except init process (PID 1) */
         int curr_pid = get_curr_process()->pid;
-        for(int i = 1; i < PROC_TABLE_SIZE; i++)
+        for(int i = 2; i < PROC_TABLE_SIZE; i++)
         {
             /* The signal is not meant for the process which sent it */
             if (process_table[i].pid == curr_pid)
@@ -591,20 +598,43 @@ int kill(struct Process *process, int signal)
                 }
             }
         }
-        /* Prepare to terminate the idle process, since a system wide SIGTERM implies a shutdown request */
-        if (signal == SIGTERM)
+        /* Prepare to terminate the init and idle process, since a system wide SIGTERM implies a shutdown request */
+        if (signal == SIGTERM){
+            (process_table+1)->signals |= (1 << signal);
             process_table->signals |= (1 << signal);
+        }
+        /* Reset the PID counter on a system wide hang up signal which suggests user log out */
+        if (signal == SIGHUP)
+            pid_num = 2;
         return 0;
     }
-    if (process->pid == 1 || process->state == UNUSED)
+    if (pid == 0){ /* Send signal to all children */
+        struct Process* process = get_curr_process();
+        for(int i = 2; i < PROC_TABLE_SIZE; i++)
+        {
+            if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED) && 
+                process->pid == process_table[i].ppid){
+                process_table[i].signals |= (1 << signal);
+                /* Wake up sleeping processes to act on the group signal */
+                if (process_table[i].state == SLEEP){
+                    remove(&pc.wait_list, (struct Node*)&process_table[i]);
+                    process_table[i].state = READY;
+                    push_back(&pc.ready_que, (struct Node*)&process_table[i]);
+                }
+            }
+        }
+        return 0;
+    }
+    struct Process* target_proc = get_process(pid);
+    if (!target_proc)
         return -1;
     
-    process->signals |= (1 << signal);
+    target_proc->signals |= (1 << signal);
     /* Wake up the process if sleeping and place it on the ready queue, for it to act on the received signal */
-    if (process->state == SLEEP){
-        remove(&pc.wait_list, (struct Node*)process);
-        process->state = READY;
-        push_back(&pc.ready_que, (struct Node*)process);
+    if (target_proc->state == SLEEP){
+        remove(&pc.wait_list, (struct Node*)target_proc);
+        target_proc->state = READY;
+        push_back(&pc.ready_que, (struct Node*)target_proc);
     }
 
     return 0;

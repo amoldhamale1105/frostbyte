@@ -73,7 +73,7 @@ int main(int argc, char** argv)
                         printf("[%s] %d\n", echo_buf+cmd_pos, cmd_pid);
                         continue;
                     }
-                    wait(cmd_pid);
+                    waitpid(cmd_pid, NULL);
                 }
             }
         }

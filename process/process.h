@@ -13,6 +13,7 @@ struct Process
     int pid;
     int ppid;
     int state;
+    int status; /* Exit status of the process */
     bool daemon; /* Whether the process runs in the background as daemon */
     int event; /* Event a process is waiting on */
     uint64_t sp; /* Process kernel stack pointer */
@@ -71,10 +72,10 @@ int get_active_pids(int* pid_list);
 void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);
 void wake_up(int event);
-void exit(struct Process* process, bool sig_handler_req);
-int wait(int pid);
+void exit(struct Process* process, int status, bool sig_handler_req);
+int wait(int pid, int* wstatus);
 int fork(void);
 int exec(struct Process* process, char* name, const char* args[]);
-int kill(struct Process *process, int signal);
+int kill(int pid, int signal);
 
 #endif

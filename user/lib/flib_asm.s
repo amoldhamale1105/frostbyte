@@ -49,6 +49,7 @@
 .global sleep
 .global exit
 .global wait
+.global waitpid
 .global open_file
 .global close_file
 .global get_file_size
@@ -177,23 +178,12 @@ sleep:
     ret
 
 exit:
-    # No arguments to this syscall hence no stack space required
-    # Set the syscall index to 2 (exit) in x8
-    mov x8, #2
-    # Load the arg count in x0
-    mov x0, #0
-    # Operating system trap
-    svc #0
-    ret
-
-wait:
     # Allocate 8 bytes on the stack to accomodate the argument to this function
-    # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
     sub sp, sp, #8
     str x0, [sp]
-    # Set the syscall index to 3 (wait) in x8
-    mov x8, #3
+    # Set the syscall index to 2 (exit) in x8
+    mov x8, #2
     # Load the arg count in x0
     mov x0, #1
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
@@ -203,6 +193,30 @@ wait:
 
     # Restore the stack
     add sp, sp, #8
+    ret
+
+wait:
+    # Move the first arg passed to x1 and set pid value to -1 in x0
+    mov x1, x0
+    mov x0, #1
+    neg x0, x0
+waitpid:
+    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
+    # Set the syscall index to 3 (wait) in x8
+    mov x8, #3
+    # Load the arg count in x0
+    mov x0, #2
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #16
     ret
 
 open_file:

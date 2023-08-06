@@ -30,5 +30,7 @@ void kmain(void)
 
 void shutdown_banner(void)
 {
-    printk("It's now safe to turn off your computer. Deja vu? ;)\n");
+    printk("Shutdown complete\n");
+    /* This will be conditional when support is added for hardware */
+    printk("Press Ctrl-A X to exit QEMU monitor\n");
 }

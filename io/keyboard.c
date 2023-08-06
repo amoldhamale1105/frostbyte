@@ -44,7 +44,7 @@ void capture_key(void)
     switch (key)
     {
     case ASCII_CTRL_C:
-        kill(fg_proc, SIGINT);
+        kill(fg_proc->pid, SIGINT);
         break;
     
     default:

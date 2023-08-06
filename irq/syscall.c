@@ -36,13 +36,13 @@ static int64_t sys_sleep(int64_t* argv)
 
 static int64_t sys_exit(int64_t* argv)
 {
-    exit(get_curr_process(), false);
+    exit(get_curr_process(), argv[0], false);
     return 0;
 }
 
 static int64_t sys_wait(int64_t* argv)
 {
-    return wait(argv[0]);
+    return wait(argv[0], (int*)argv[1]);
 }
 
 static int64_t sys_open_file(int64_t* argv)
@@ -119,10 +119,10 @@ static int64_t sys_proc_data(int64_t* argv)
 
 static int64_t sys_kill(int64_t* argv)
 {
-    struct Process* process = get_process(argv[0]);
-    if (process == NULL && (int)argv[0] >= 0)
+    /* Forbid signals to the init process */
+    if (argv[0] == 1)
         return -1;
-    return kill(process, argv[1]);
+    return kill(argv[0], argv[1]);
 }
 
 static int64_t sys_signal(int64_t* argv)

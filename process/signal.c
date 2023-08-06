@@ -54,42 +54,21 @@ static void def_handler_entry(int signal)
 {    
     switch (signal)
     {
+    case SIGHUP:
     case SIGINT:
     case SIGABRT:
     case SIGTERM: { /* Graceful termination where orphans are reassigned, parent informed and memory cleaned */
         /* Remove the process from the ready queue */
         remove(&pc->ready_que, (struct Node*)target_proc);
         /* Invoke exit for the process to unblock the parent if it is waiting */
-        exit(target_proc, true);
-        /* If the parent wasn't waiting or hasn't got to cleaning the child resources yet, perform the cleanup */
-        if (target_proc->state != UNUSED){
-            /* Release memory used by the process for page map and stack */
-            kfree(target_proc->stack);
-            free_uvm(target_proc->page_map);
-            /* Decrement ref counts of all files left open by the process */
-            for(int i = 0; i < MAX_OPEN_FILES; i++)
-            {
-                if (target_proc->fd_table[i] != NULL){
-                    target_proc->fd_table[i]->ref_count--;
-                    target_proc->fd_table[i]->inode->ref_count--;
-                    /* Note that we can't release the inode based on only the file entry ref count because other file entries could be pointing to it
-                       Hence the in core inode should be released (entry set to NULL) only if the inode ref count is zero */
-                    if (target_proc->fd_table[i]->inode->ref_count == 0)
-                        target_proc->fd_table[i]->inode = NULL;
-                }
-            }
-            /* Set process state to unused and reset daemon status to avoid it getting carried over to another process using this slot */
-            target_proc->state = UNUSED;
-            target_proc->daemon = false;
-            /* Remove entry in list of zombies */
-            remove(&pc->zombies, (struct Node*)target_proc);
-        }
+        exit(target_proc, signal, true);
         break;
     }
     case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in unattended zombies */
         /* Ignore kill request for idle and init process */
         if (target_proc->pid == 0 || target_proc->pid == 1)
             return;
+        target_proc->status |= signal & 0x7f;
         /* Remove the process from the ready queue and handover children if any to the init process */
         remove(&pc->ready_que, (struct Node*)target_proc);
         switch_parent(target_proc->pid, 1);
@@ -106,6 +85,7 @@ static void def_handler_entry(int signal)
         if (!target_proc->daemon)
             wake_up(FG_PAUSED);
         target_proc->state = KILLED;
+        push_back(&pc->zombies, (struct Node*)target_proc);
         break;
     case SIGCHLD:
         /* SIGCHLD is not supposed to be handled by the kernel. It's the parent's responsibilty */
@@ -138,7 +118,9 @@ void init_def_handlers(struct ProcessControl* proc_ctrl)
     
     memset(def_handlers, 0, sizeof(SIGHANDLER)*TOTAL_SIGNALS);
     /* Note that the kernel will not host default handlers for all signals. If custom handler is missing, the signal may get lost */
+    def_handlers[SIGHUP] = def_handler_entry;
     def_handlers[SIGINT] = def_handler_entry;
+    def_handlers[SIGABRT] = def_handler_entry;
     def_handlers[SIGTERM] = def_handler_entry;
     def_handlers[SIGKILL] = def_handler_entry;
 }

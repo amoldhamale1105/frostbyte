@@ -46,7 +46,7 @@ int main(int argc, char** argv)
             attempts--;
             if (attempts == 0){
                 printf("Sorry %s, you have no attempts remaining. Aborting\n\n", name);
-                exit();
+                exit(1);
             }
         }
     }
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
             printf("Invalid age. Aborting\n\n");
         else
             printf("\n%s, you're below the worldwide age limit for voting!\n\n", name);
-        exit();
+        exit(1);
     }
     
     switch (country_code)

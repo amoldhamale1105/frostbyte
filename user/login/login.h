@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define MAX_LOGIN_ATTEMPTS 34
+#define MAX_LOGIN_ATTEMPTS 5
 #define MAX_USERNAME_SIZE 50
 #define MAX_PASSWD_SIZE 50
 
