@@ -67,12 +67,14 @@ qemu-system-aarch64 \
 ```
 On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.  
 
-The OS boots up to a login prompt on the serial console. The login process parses the `passwd` file on the disk for valid credentials. You can mount the FAT16 disk image on host and add new users in existing format in the `passwd` file.  
+The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. You can mount the FAT16 disk image on host with `make mount` to add new users with password and other details in existing syntax in the **temp/passwd** file.  
 Default user is `root` with default password as `toor` (root spelled backwards)  
+
+![frostbyte_login](https://github.com/amoldhamale1105/frostbyte/assets/78597991/2eaca107-3d60-4f0f-8578-7fdc8d95a381)
 
 On successful login, a shell for current user is activated to interact with the system. You can log out by entering `exit` on the main shell (usually PID 2) or issuing a `kill` command with the main shell PID.  
 
-![Frostbyte](https://github.com/amoldhamale1105/frostbyte/assets/78597991/4a01b30d-7c95-4639-9cf4-cc98d943de5e)
+![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/061b4609-90c0-497b-a814-0e39007d7c8c)
 
 To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
 
