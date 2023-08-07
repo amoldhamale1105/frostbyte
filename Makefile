@@ -1,6 +1,10 @@
+HOST_ARCH := x86_64
 export TARGET_ARCH := aarch64
-export PREFIX := $(TARGET_ARCH)-none-elf-
+export VENDOR := none
+export TARGET_OS := elf
+export PREFIX := $(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)-
 export CC := $(PREFIX)gcc
+export GCC_VERSION := $(shell $(CC) --version | sed -n 's/.* \([0-9]\+\.[0-9]\+\.[0-9]\+\) .*$$/\1/p')
 export LINK := $(PREFIX)ld
 export OBJ_COPY := $(PREFIX)objcopy
 
@@ -8,12 +12,12 @@ export CFLAGS := -g -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -n
 export LDFLAGS := -nostdlib
 
 SRC_DIR := .
-INCLUDES := -I./aarch64-none-elf/include -I./lib/gcc/aarch64-none-elf/11.2.1/include -I.
+INCLUDES := -I./$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/include -I./lib/gcc/$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/$(GCC_VERSION)/include -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 export MOUNT_POINT := $(PWD)/temp
 export KERNEL_NAME := frostbyte
-export KERNEL_VERSION := 1.2.1
+export KERNEL_VERSION := 2.0.0
 export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/lib_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \

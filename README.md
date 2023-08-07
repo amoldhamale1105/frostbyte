@@ -29,9 +29,9 @@ You will need a pre-compiled cross toolchain to build the kernel. Download a Lin
 
 You will either need [gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf.tar.xz?rev=981d8f7e91864070a466d852589598e2&hash=8D5397D4E41C99A96989ED813E8E95F0) or [gcc-arm-11.2-2022.02-aarch64-aarch64-none-elf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-aarch64-none-elf.tar.xz?rev=6999776f159f49cbb12166e86dacd6c2&hash=703D7E8481C11FA8043E66EBF947A983) depending on your host machine architecture. You can choose a different or newer version but it should be for bare metal target only  
 
-Append the toolchain path to your `PATH` env variable to enable `make` to run seamlessly with the cross compiler prefix:
+Append the toolchain root and binary path to your `PATH` env variable to enable `make` to resolve include paths and run seamlessly with the cross compiler prefix:
 ```
-export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf/bin
+export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf/bin
 ```
 
 ### Build
@@ -67,14 +67,17 @@ qemu-system-aarch64 \
 ```
 On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.  
 
-At the time of writing this readme, the OS boots up to a shell on the serial console where you can run commands to interact with the system.  
+The OS boots up to a login prompt on the serial console. The login process parses the `passwd` file on the disk for valid credentials. You can mount the FAT16 disk image on host and add new users in existing format in the `passwd` file.  
+Default user is `root` with default password as `toor` (root spelled backwards)  
+
+On successful login, a shell for current user is activated to interact with the system. You can log out by entering `exit` on the main shell (usually PID 2) or issuing a `kill` command with the main shell PID.  
 
 ![Frostbyte](https://github.com/amoldhamale1105/frostbyte/assets/78597991/4a01b30d-7c95-4639-9cf4-cc98d943de5e)
 
 To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
 
 ## Features and Capabilities
-This content is valid as of July 23, 2023. It might be outdated for current version of the kernel. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for a specific version and encompassing features  
+This content is valid as of Aug 7, 2023. It might be outdated for current version of the kernel on master branch. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for a specific version and encompassing features  
 > **__Note:__** This section is a more of a user guide than a development guide. Custom user programs can be written for frostbyte similar to the programs developed for various commands. A separate development guide and API documentation will be created shortly with all the custom library functions and system calls. In the meantime, if you want to develop your own userspace app for frostbyte, check out the header `user/lib/flib.h` for prototypes and `user/test` and `user/sampleapp` as reference applications
 
 ### Features
@@ -86,16 +89,15 @@ This content is valid as of July 23, 2023. It might be outdated for current vers
 - Paging and virtual memory management
 - FAT16 filesystem support
 - VFS (Virtual filesystem)
+- Multi-user mode with login prompt
 - Serial console interactive shell
-- POSIX compliant system calls and commands
-- POSIX signal handling framework
-- Custom signal handlers in user programs
-- Custom standard library funtions
-- Executing custom programs with command-line arguments
+- POSIX compliant system calls, library functions and commands
+- POSIX signal handling framework with default and custom handlers
+- Custom program execution on shell with command-line arguments
 - User inputs (stdin) to foreground user programs
-- Foreground and background process management
+- Foreground and background process control
 
-You can execute commands and programs on the shell by simply entering their name with or without executable suffix. Commands entered on the shell are case insensitive. All executables on frostbyte need to have the `.bin` suffix to be qualified as an executable. However, during execution, usage of the `.bin` suffix is optional  
+You can execute commands and programs on the shell by simply entering their name with or without extension. Commands entered on the shell are case insensitive. All executables on frostbyte need to have the `.bin` extension to be qualified as an executable. However, during execution, usage of the `.bin` extension is optional  
 For example, all of the following commands will result in `frostbyte` as output
 ```
 uname
@@ -113,9 +115,9 @@ Programs running in the foreground can be terminated with a keyboard interrupt b
 ### Commands
 The following POSIX commands are currently supported by **frostbyte** OS with options.  
 ```
-uname, ls, ps, cat, kill, exit, shutdown
+sh, uname, ls, ps, echo, cat, kill, exit, shutdown
 ```
-Usage and short description of any command can be viewed with the `-h` option  
+Usage and short description of any command can be viewed with the `-h` option except for the `echo` command which simply echoes passed arguments and evaluates environment variables or special expressions like `$$` (current shell PID) and `$?` (last command exit status)  
 For example, `uname -h` will print the following output to the terminal
 ```
 Usage:
