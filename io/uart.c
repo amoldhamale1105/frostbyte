@@ -29,7 +29,11 @@ void uart_handler(void)
     uint32_t status = in_word(UART0_MIS);
 
     if (status & (1 << 4)){
-        capture_key();
+        /* Read all characters in the FIFO buffer until the RXFE (Receive FIFO empty) bit of flags register is set */
+        while (!(in_word(UART0_FR) & (1 << 4)))
+        {
+            capture_key();
+        }
         /* Clear the interrupt by setting bit 4 of the interrupt clear register */
         out_word(UART0_ICR, (1 << 4));
     }
