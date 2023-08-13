@@ -1,3 +1,21 @@
+/**
+    Frostbyte kernel and operating system
+    Copyright (C) 2023  Amol Dhamale <amoldhamale1105@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 .equ MAITR_ATTR,    (0x44 << 8) // Memory attribute indirection register, LSB 8-bits set to 0 (device memory) and next set to 0x44 (normal memory)
 .equ TCR_T0SZ,      (16)
 .equ TCR_T1SZ,      (16 << 16)
