@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 
     while (attempts)
     {
+        memset(username, 0, sizeof(username));
         printf("\n%s login: ", stringify_value(NAME));
         scanf("%s", username);
         if (*username == 0)
