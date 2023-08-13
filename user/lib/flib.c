@@ -140,8 +140,10 @@ int abs(int num)
 
 static int read_input(char* buf, int max_size)
 {
-    char shell_echo[4] = {0};
+    char shell_echo[4];
     int write_count = 0;
+
+    memset(shell_echo, 0, sizeof(shell_echo));
     
     while (1)
     {
@@ -154,6 +156,7 @@ static int read_input(char* buf, int max_size)
         if (ch == '\r'){
             shell_echo[0] = '\r';
             shell_echo[1] = '\n';
+            shell_echo[2] = 0;
             printf("%s", shell_echo);
             /* Null terminate the character echo buffer for upcoming character */
             shell_echo[1] = 0;
@@ -167,7 +170,7 @@ static int read_input(char* buf, int max_size)
             if (write_count > 0)
                 buf[write_count++] = 0;
         }
-        else if (ch == ASCII_BACKSPACE){
+        else if (ch == ASCII_DELETE){
             if (write_count == 0)
                 continue;
             /* Use a combination of backspace and space characters to clear the last typed character on the screen */
@@ -175,12 +178,23 @@ static int read_input(char* buf, int max_size)
             shell_echo[1] = ' ';
             shell_echo[2] = '\b';
             printf("%s", shell_echo);
+            if (buf[write_count-1] == ASCII_ESCAPE)
+                printf("%s", shell_echo);
             shell_echo[1] = 0;
             /* Erase the last read character from the buffer */
             buf[--write_count] = 0;
         }
+        else if (ch == ASCII_ESCAPE){
+            shell_echo[0] = '^';
+            shell_echo[1] = '[';
+            shell_echo[2] = 0;
+            printf("%s", shell_echo);
+            /* Null terminate the character echo buffer for upcoming character */
+            shell_echo[1] = 0;
+            buf[write_count++] = ch;
+        }
         else{
-            if (ch == ASCII_CTRL_C || ch == ASCII_ESCAPE)
+            if (ch == ASCII_CTRL_C)
                 continue;
             *shell_echo = ch;
             printf("%s", shell_echo);

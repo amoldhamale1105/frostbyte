@@ -52,17 +52,15 @@ int read_passwd(char* buf)
             buf[buf_size] = 0;
             break;
         }
-        else if (cmd_ch == ASCII_BACKSPACE){
+        else if (cmd_ch == ASCII_DELETE){
             if (buf_size == 0)
                 continue;
             /* Erase the last read character from the buffer */
             buf[--buf_size] = 0;
         }
-        else{
-            if (cmd_ch == ASCII_CTRL_C || cmd_ch == ASCII_ESCAPE)
-                continue;
+        else
             buf[buf_size++] = cmd_ch;
-        }
+        
         /* End password entry if the max password size exceeded */
         if (buf_size >= MAX_PASSWD_SIZE-1){
             buf[MAX_PASSWD_SIZE-1] = 0;

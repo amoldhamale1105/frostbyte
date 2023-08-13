@@ -82,10 +82,13 @@ int get_cmd_info(char* cmd, char* echo, int* cmd_pos, char** ext, char** echo_ar
 int read_cmd(char* buf, char* echo_buf)
 {
     char shell_echo[4];
+    char key_acc[3];
     int buf_size = 0;
+    int cursor = 0;
     char cmd_ch;
 
     memset(shell_echo, 0, sizeof(shell_echo));
+    memset(key_acc, 0, sizeof(key_acc));
 
     while (1)
     {
@@ -97,33 +100,113 @@ int read_cmd(char* buf, char* echo_buf)
         if (cmd_ch == '\r'){
             shell_echo[0] = '\r';
             shell_echo[1] = '\n';
+            shell_echo[2] = 0;
             printf("%s", shell_echo);
             /* Null terminate the character echo buffer for upcoming character */
             shell_echo[1] = 0;
             break;
         }
-        else if (cmd_ch == ASCII_BACKSPACE){
-            if (buf_size == 0)
+        else if (cmd_ch == ASCII_DELETE){ /* "Backspace" key pressed */
+            if (*key_acc)
+                memset(key_acc, 0, sizeof(key_acc));
+            if (cursor == 0)
                 continue;
             /* Use a combination of backspace and space characters to clear the last typed character on the screen */
             shell_echo[0] = '\b';
             shell_echo[1] = ' ';
             shell_echo[2] = '\b';
             printf("%s", shell_echo);
+            if (cursor < buf_size){
+                /* The last character should be erased from the screen before shifting left */
+                shell_echo[0] = ' ';
+                shell_echo[1] = '\b';
+                shell_echo[2] = 0;
+                printf("%s%s", echo_buf+cursor, shell_echo);
+                int split_len = strlen(echo_buf+cursor);
+                /* Reset the cursor position on screen to last erased character */
+                for(int i = 0; i < split_len; i++)
+                {
+                    printf("\b");
+                }
+                /* Shift left to fill up space created by erased character */
+                memmove(buf+cursor-1, buf+cursor, split_len);
+                memmove(echo_buf+cursor-1, echo_buf+cursor, split_len);
+            }
             shell_echo[1] = 0;
-            /* Erase the last read character from the buffer */
+            /* Erase the last character from the buffer */
             buf[buf_size-1] = 0;
             echo_buf[buf_size-1] = 0;
             buf_size--;
+            cursor--;
+        }
+        else if (cmd_ch == ASCII_ESCAPE){ /* Esc key or a special key sequence */
+            *key_acc = cmd_ch;
         }
         else{
-            if (cmd_ch == ASCII_CTRL_C || cmd_ch == ASCII_ESCAPE)
+            if (cmd_ch == ASCII_CTRL_C)
                 continue;
+            if (*key_acc == ASCII_ESCAPE){
+                int i = 1;
+                for (; (i < sizeof(key_acc)) && *(key_acc + i); i++);
+                if (i < sizeof(key_acc)){
+                    key_acc[i] = cmd_ch;
+                    if (i < sizeof(key_acc)-1)
+                        continue;
+                }
+                if (key_acc[1] != '['){ /* Unknown sequence */
+                    memset(key_acc, 0, sizeof(key_acc));
+                    continue;
+                }
+                bool echo = false;
+                switch (key_acc[2])
+                {
+                case 'A': /* Up arrow key */
+                    /* This is where history list traversing logic can be added in future if desired. For now, do nothing */
+                    break;
+                case 'B': /* Down arrow key */
+                    /* Do nothing */
+                    break;
+                case 'C': /* Right arrow key */
+                    if (cursor < buf_size){
+                        cursor++;
+                        echo = true;
+                    }
+                    break;
+                case 'D': /* Left arrow key */
+                    if (cursor > 0){
+                        cursor--;
+                        echo = true;
+                    }
+                default:
+                    break;
+                }
+                if (echo){
+                    memcpy(shell_echo, key_acc, sizeof(key_acc));
+                    printf("%s", shell_echo);
+                    shell_echo[1] = 0;
+                }
+                memset(key_acc, 0, sizeof(key_acc));
+                continue;
+            }
             *shell_echo = cmd_ch;
             printf("%s", shell_echo);
-            buf[buf_size] = to_upper(cmd_ch);
-            echo_buf[buf_size] = cmd_ch;
+            if (cursor < buf_size){
+                printf("%s", echo_buf+cursor);
+                int split_len = strlen(echo_buf+cursor);
+                /* Reset the cursor position on screen to after the last written character */
+                for(int i = 0; i < split_len; i++)
+                {
+                    printf("\b");
+                }
+                /* Shift right by single character to make room for the new character */
+                memmove(buf+cursor+1, buf+cursor, split_len);
+                memmove(echo_buf+cursor+1, echo_buf+cursor, split_len);
+            }
+            /* Insert the new character at cursor position */
+            buf[cursor] = to_upper(cmd_ch);
+            echo_buf[cursor] = cmd_ch;
             buf_size++;
+            cursor++;
         }
     }
 
