@@ -49,7 +49,7 @@ int main(int argc, char** argv)
             }
             /* Try matching entered password against registered user's password in file
                An entry of 'x' in the passwd file is interpreted as password-free login */
-            if (memcmp(pbuf, username, namelen) == 0){
+            if ((strlen(username) == namelen) && memcmp(pbuf, username, namelen) == 0){
                 username[namelen] = 0;
                 pbuf += (namelen+1);
                 while (*(pbuf+passlen) != ':')
