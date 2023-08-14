@@ -20,9 +20,9 @@
 
 static void print_usage(void)
 {
-    printf("Usage:\n");
+    printf("Usage:");
     printf("\tuname [OPTION]\n");
-    printf("Print certain system information.  With no OPTION, same as -s.\n\n");
+    printf("\tPrint certain system information.  With no OPTION, same as -s.\n\n");
     printf("\t-h\tdisplay this help and exit\n");
     printf("\t-a\tprint all system information in following order:\n");
     printf("\t-s\tprint the kernel name\n");
@@ -34,20 +34,41 @@ int main(int argc, char** argv)
 {
     char option = 's';
     if (argc > 1){
-        int arg_len = strlen(argv[1]);
-        if (argv[1][0] != '-' || arg_len > 2){
-            printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
-            printf("Try \'%s -h\' for more information\n", argv[0]);
-            return 1;
+        int opt = 1;
+        while (opt < argc)
+        {
+            if (argv[opt][0] != '-'){
+                printf("%s: bad usage\n", argv[0]);
+                printf("Try \'%s -h\' for more information\n", argv[0]);
+                return 1;
+            }
+            char* optstr = &argv[opt][1];
+            while (*optstr)
+            {
+                switch (*optstr)
+                {
+                case 'h':
+                    print_usage();
+                    return 0;
+                case 'r':
+                case 'a':
+                case 'i':
+                case 's':
+                    option = *optstr;
+                    break;
+                default:
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[opt]);
+                    printf("Try \'%s -h\' for more information\n", argv[0]);
+                    return 1;
+                }
+                optstr++;
+            }
+            opt++;
         }
-        option = argv[1][1];
     }
     
     switch (option)
     {
-    case 'h':
-        print_usage();
-        break;
     case 'r':
         printf("%s\n", stringify_value(VERSION));
         break;
@@ -58,11 +79,8 @@ int main(int argc, char** argv)
         printf("%s\n", stringify_value(ARCH));
         break;
     case 's':
-        printf("%s\n", stringify_value(NAME));
-        break;
     default:
-        printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
-        printf("Try \'%s -h\' for more information\n", argv[0]);
+        printf("%s\n", stringify_value(NAME));
         break;
     }
     

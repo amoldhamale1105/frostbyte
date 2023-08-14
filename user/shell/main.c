@@ -77,6 +77,12 @@ int main(int argc, char** argv)
                 printf("%s: not an executable\n", echo_buf+cmd_pos);
                 continue;
             }
+            /* Forbid direct execution of init and login programs by the user */
+            if (memcmp(cmd_buf+cmd_pos, "INIT.BIN", strlen(cmd_buf+cmd_pos)) == 0 ||
+                memcmp(cmd_buf+cmd_pos, "LOGIN.BIN", strlen(cmd_buf+cmd_pos)) == 0){
+                printf("%s: %s - Operation not permitted\n", argv[0], cmd_buf+cmd_pos);
+                continue;
+            }
             int fd = open_file(cmd_buf+cmd_pos);
             if (fd < 0)
                 printf("%s: command not found\n", echo_buf+cmd_pos);

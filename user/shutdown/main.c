@@ -21,33 +21,39 @@
 
 static void print_usage(void)
 {
-    printf("Usage:\n");
+    printf("Usage:");
     printf("\tshutdown [OPTION]\n");
-    printf("Shut down the system (Stop all active processes and disable interrupt handling. No ACPI mapping)\n\n");
+    printf("\tShut down the system (Stop all active processes and disable interrupt handling. No ACPI mapping)\n\n");
     printf("\t-h\tdisplay this help and exit\n");
 }
 
 int main(int argc, char** argv)
 {
     if (argc > 1){
-        if (argv[1][0] == '-'){
-            if (strlen(argv[1]) == 2){
-                switch (argv[1][1])
+        int opt = 1;
+        while (opt < argc)
+        {
+            if (argv[opt][0] != '-'){
+                printf("%s: bad usage\n", argv[0]);
+                printf("Try \'%s -h\' for more information\n", argv[0]);
+                return 1;
+            }
+            char* optstr = &argv[opt][1];
+            while (*optstr)
+            {
+                switch (*optstr)
                 {
                 case 'h':
                     print_usage();
                     return 0;
                 default:
-                    printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[opt]);
                     printf("Try \'%s -h\' for more information\n", argv[0]);
                     return 1;
                 }
+                optstr++;
             }
-            else{
-                printf("%s: bad usage\n", argv[0]);
-                printf("Try \'%s -h\' for more information\n", argv[0]);
-                return 1;
-            }
+            opt++;
         }
     }
     /* A negative PID will send signals to all processes in the system

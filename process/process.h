@@ -89,7 +89,7 @@ struct Process *get_fg_process(void);
 struct Process* get_process(int pid);
 int get_status(int pid);
 int get_proc_data(int pid, int* ppid, int* state, char* name, char* args_buf);
-int get_active_pids(int* pid_list);
+int get_active_pids(int* pid_list, int all);
 void switch_parent(int curr_ppid, int new_ppid);
 void sleep(int event);
 void wake_up(int event);

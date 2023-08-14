@@ -61,7 +61,7 @@ int main(void)
         if (pid == login_shell_pid){
             /* Hang up all processes since the user has logged out */
             kill(-1, SIGHUP);
-            sleep(50);
+            msleep(50);
             if (respawn("LOGIN.BIN", NULL, &login_shell_pid) != 0){
                 kill(-1, SIGTERM);
                 return 1;

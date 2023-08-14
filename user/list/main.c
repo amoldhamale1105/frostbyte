@@ -25,9 +25,9 @@ struct DirEntry entries[1024];
 
 static void print_usage(void)
 {
-    printf("Usage:\n");
+    printf("Usage:");
     printf("\tls [OPTION]\n");
-    printf("List information about files in current directory (root directory by default)\n\n");
+    printf("\tList information about files in current directory (root directory by default)\n\n");
     printf("\t-h\tdisplay this help and exit\n");
     printf("\t-l\tuse a long listing format with all details\n");
 }
@@ -36,9 +36,18 @@ int main(int argc, char** argv)
 {
     bool long_list = false;
     if (argc > 1){
-        if (argv[1][0] == '-'){
-            if (strlen(argv[1]) == 2){
-                switch (argv[1][1])
+        int opt = 1;
+        while (opt < argc)
+        {
+            if (argv[opt][0] != '-'){
+                printf("%s: bad usage\n", argv[0]);
+                printf("Try \'%s -h\' for more information\n", argv[0]);
+                return 1;
+            }
+            char* optstr = &argv[opt][1];
+            while (*optstr)
+            {
+                switch (*optstr)
                 {
                 case 'h':
                     print_usage();
@@ -47,16 +56,13 @@ int main(int argc, char** argv)
                     long_list = true;
                     break;
                 default:
-                    printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[opt]);
                     printf("Try \'%s -h\' for more information\n", argv[0]);
                     return 1;
                 }
+                optstr++;
             }
-            else{
-                printf("%s: bad usage\n", argv[0]);
-                printf("Try \'%s -h\' for more information\n", argv[0]);
-                return 1;
-            }
+            opt++;
         }
     }
     char filename[MAX_FILENAME_BYTES+MAX_EXTNAME_BYTES+2] = {0};

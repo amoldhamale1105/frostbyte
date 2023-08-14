@@ -273,7 +273,7 @@ int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
     return args_size;
 }
 
-int get_active_pids(int* pid_list)
+int get_active_pids(int* pid_list, int all)
 {
     int count = 0;
     /* Omit the idle process which occupies the first slot in the process table
@@ -281,9 +281,18 @@ int get_active_pids(int* pid_list)
     for(int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         if (process_table[i].state != UNUSED){
-            if (pid_list != NULL)
-                pid_list[count] = process_table[i].pid;
-            count++;
+            if (all){
+                if (pid_list != NULL)
+                    pid_list[count] = process_table[i].pid;
+                count++;
+            }
+            else{ /* Get PIDs of current session */
+                if ((process_table[i].ppid == pc.curr_process->ppid) || (process_table[i].pid == pc.curr_process->ppid)){
+                    if (pid_list != NULL)
+                        pid_list[count] = process_table[i].pid;
+                    count++;
+                }
+            }
         }
     }
 

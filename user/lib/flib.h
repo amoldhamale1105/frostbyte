@@ -91,7 +91,7 @@ int abs(int num);
 /* System call library functions */
 
 int writeu(char* buf, int buf_size);
-void sleep(uint64_t ticks_10ms);
+void msleep(uint64_t ticks_10ms);
 int open_file(char* filename);
 int close_file(int fd);
 uint32_t get_file_size(int fd);
@@ -109,6 +109,6 @@ int getppid(void);
 int get_pstatus(void);
 int get_proc_data(int pid, int* ppid, int* state, char* procname, char* procargs);
 int read_root_dir(void* buf);
-int get_active_procs(int* pid_list);
+int get_active_procs(int* pid_list, int all);
 
 #endif

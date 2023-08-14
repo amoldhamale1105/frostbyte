@@ -22,54 +22,56 @@
 
 static void print_usage(void)
 {
-    printf("Usage:\n");
+    printf("Usage:");
     printf("\tkill [OPTION] <pid>\n");
-    printf("Send a signal to a process\n\n");
+    printf("\tSend a signal to a process\n\n");
     printf("\t-h\tdisplay this help and exit\n");
     printf("\t-sig\tsignal number (Refer to POSIX signals)\n");
 }
 
 int main(int argc, char** argv)
 {
-    int pid, signal = SIGTERM;
+    int pid = -1;
+    int signal = SIGTERM;
     if (argc < 2){
         printf("%s: bad usage\n", argv[0]);
         printf("Try \'%s -h\' for more information\n", argv[0]);
         return 1;
     }
     if (argc > 1){
-        int arg_len = strlen(argv[1]);
-        if (argc > 2){
-            if (argv[1][0] != '-' || arg_len > 2){
-                printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
-                printf("Try \'%s -h\' for more information\n", argv[0]);
-                return 1;
+        int opt = 1;
+        while (opt < argc)
+        {
+            if (argv[opt][0] != '-' && (argv[opt][0] >= BASE_NUMERIC_ASCII && argv[opt][0] <= BASE_NUMERIC_ASCII+9)){
+                pid = atoi(argv[opt]);
+                opt++;
+                continue;
             }
-            /* Used to create the delusion of an option with argument */
-            signal = abs(atoi(argv[1]));
-            pid = atoi(argv[2]);
-        }
-        else{
-            if (argv[1][0] == '-'){
-                if (arg_len == 2){
-                    switch (argv[1][1])
-                    {
-                    case 'h':
-                        print_usage();
-                        return 0;
-                    default:
-                        printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
-                        printf("Try \'%s -h\' for more information\n", argv[0]);
-                        return 1;
+            char* optstr = &argv[opt][1];
+            while (*optstr)
+            {
+                switch (*optstr)
+                {
+                case 'h':
+                    print_usage();
+                    return 0;
+                default:
+                    if (argv[opt][1] > BASE_NUMERIC_ASCII && argv[opt][1] <= BASE_NUMERIC_ASCII+9){
+                        signal = atoi(&argv[opt][1]);
+                        break;
                     }
-                }
-                else{
-                    printf("%s: bad usage\n", argv[0]);
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[opt]);
                     printf("Try \'%s -h\' for more information\n", argv[0]);
                     return 1;
                 }
+                optstr++;
             }
-            pid = atoi(argv[1]);
+            opt++;
+        }
+        if (pid == -1){
+            printf("%s: bad usage\n", argv[0]);
+            printf("Try \'%s -h\' for more information\n", argv[0]);
+            return 1;
         }
     }
     

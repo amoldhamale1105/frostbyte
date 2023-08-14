@@ -82,7 +82,7 @@ int main(int argc, char** argv)
                 if ((passwd_size != passlen) || memcmp(pbuf, password, passlen) != 0){
                     attempts--;
                     /* A small delay to generate an illusion of backend credential processing */
-                    sleep(30);
+                    msleep(30);
                     printf("\n\nLogin incorrect. Try again\n");
                     namelen = passlen = 0;
                     break;
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
         if (nloff < 0 || *pbuf == 0){
             attempts--;
             /* A small delay to generate an illusion of backend credential processing */
-            sleep(30);
+            msleep(30);
             printf("\nLogin incorrect. Try again\n");
             namelen = passlen = 0;
         }

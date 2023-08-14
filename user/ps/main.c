@@ -20,8 +20,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define MAX_CMD_OPTS 3
-
 static char state_rep(int state)
 {
     char state_ch;
@@ -53,21 +51,22 @@ static char state_rep(int state)
 
 static void print_usage(void)
 {
-    printf("Usage:\n");
+    printf("Usage:");
     printf("\tps [OPTION...]\n");
-    printf("Report a snapshot of current processes\n\n");
+    printf("\tReport a snapshot of current processes\n\n");
     printf("\t-h\tdisplay this help and exit\n");
-    printf("\t-rows\trows is number of lines to display from the head\n");
+    printf("\t-e\tSelect all processes.  Identical to -A.\n");
     printf("\t-f\tfull format listing with additional columns and\n\t\tcommand arguments\n");
+    printf("\t-A\tSelect all processes.  Identical to -e.\n");
+    printf("\t-rows\trows is number of lines to display from the head\n");
 }
 
 int main(int argc, char** argv)
 {
     int rows = 0;
     bool full_format = false;
+    bool all = false;
     if (argc > 1){
-        if (argc > MAX_CMD_OPTS)
-            argc = MAX_CMD_OPTS;
         int opt = 1;
         while (opt < argc)
         {
@@ -76,33 +75,32 @@ int main(int argc, char** argv)
                 printf("Try \'%s -h\' for more information\n", argv[0]);
                 return 1;
             }
-            if (strlen(argv[opt]) == 2){
-                switch (argv[opt][1])
+            if (argv[opt][1] > BASE_NUMERIC_ASCII && argv[opt][1] <= BASE_NUMERIC_ASCII+9){
+                rows = atoi(&argv[opt][1]);
+                opt++;
+                continue;
+            }
+            char* optstr = &argv[opt][1];
+            while (*optstr)
+            {
+                switch (*optstr)
                 {
                 case 'h':
                     print_usage();
                     return 0;
+                case 'e':
+                case 'A':
+                    all = true;
+                    break;
                 case 'f':
                     full_format = true;
                     break; /* NOTE This breaks from the switch block, not the outer loop */
                 default:
-                    if (argv[opt][1] > BASE_NUMERIC_ASCII && argv[opt][1] <= BASE_NUMERIC_ASCII+9){
-                        rows = (int)(argv[opt][1] - BASE_NUMERIC_ASCII);
-                        break;
-                    }
-                    printf("%s: invalid option \'%s\'\n", argv[0], argv[1]);
+                    printf("%s: invalid option \'%s\'\n", argv[0], argv[opt]);
                     printf("Try \'%s -h\' for more information\n", argv[0]);
                     return 1;
                 }
-            }
-            else{
-                if (argv[opt][1] > BASE_NUMERIC_ASCII && argv[opt][1] <= BASE_NUMERIC_ASCII+9)
-                    rows = atoi(argv[opt]);
-                if (rows <= 0){
-                    printf("%s: bad usage\n", argv[0]);
-                    printf("Try \'%s -h\' for more information\n", argv[0]);
-                    return 1;
-                }
+                optstr++;
             }
             opt++;
         }
@@ -119,11 +117,11 @@ int main(int argc, char** argv)
     }
     separator[header_len+1] = 0;
     
-    int pid_count = get_active_procs(NULL);
+    int pid_count = get_active_procs(NULL, all);
     int pid_list[pid_count];
     if (rows == 0 || rows > pid_count)
         rows = pid_count;
-    get_active_procs(pid_list);
+    get_active_procs(pid_list, all);
 
     int ppid, state, args_size, args_pos;
     char procname[MAX_FILENAME_BYTES+1];

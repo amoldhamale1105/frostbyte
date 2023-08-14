@@ -127,7 +127,7 @@ static int64_t sys_get_ppid(int64_t* argv)
 static int64_t sys_active_procs(int64_t* argv)
 {
     int* pid_list = (int*)argv[0];
-    return get_active_pids(pid_list);
+    return get_active_pids(pid_list, argv[1]);
 }
 
 static int64_t sys_pstatus(int64_t* argv)
