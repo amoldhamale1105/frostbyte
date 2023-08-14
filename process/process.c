@@ -58,7 +58,9 @@ static struct Process* alloc_new_process(void)
 
     process->state = INIT;
     process->status = 0;
-    /* Assign PID 1 and post increment for the next process to receive the next number */
+    process->signals = 0;
+    process->wpid = 0;
+    /* Assign a PID and increment the global PID counter. Processes may share the same table slot but never the same PID number */
     process->pid = pid_num++;
     /* Get the context frame which is located at the top of the kernel stack */
     process->reg_context = (struct ContextFrame*)(process->stack + STACK_SIZE - sizeof(struct ContextFrame));
@@ -350,13 +352,17 @@ void exit(struct Process* process, int status, bool sig_handler_req)
     /* Set the state to killed and event to PID for the wait function to sweep it later */
     process->state = KILLED;
     process->event = process->pid;
-    /* Inform the parent about death of child and pass low-order 8 bits of exit status */
+    /* Inform the parent about death of child and pass its exit status */
     struct Process* parent = get_process(process->ppid);
-    if (parent != NULL){
+    if (parent != NULL && parent->state != KILLED){
         parent->signals |= (1 << SIGCHLD);
-        parent->status &= 0xff;
-        parent->status |= (process->status & 0xff00);
+        parent->status = process->status;
+        /* If the parent has abandoned this process, make init a foster parent to clean it up as a zombie */
+        if (parent->wpid >= 0 && (parent->wpid != process->pid))
+            process->ppid = 1;
     }
+    else /* Orphan process. Make init a foster parent */
+        process->ppid = 1;
     /* Handover potential orphan children if any to the init process */
     switch_parent(process->pid, 1);
     /* Abdicate status as current system foreground process if it was one */
@@ -380,15 +386,14 @@ void exit(struct Process* process, int status, bool sig_handler_req)
 int wait(int pid, int* wstatus, int options)
 {
     struct Process* zombie;
-    int zpid;
     /* Return failure if the given process does not exist or if the PID value is invalid */
     if (pid == 0 || pid < -1)
         return -1;
-
+    pc.curr_process->wpid = pid;
+    
     while (1)
     {
         bool has_child = false;
-        zpid = pid;
         /* Search for first available zombie child */
         if (pid == -1){
             for(int i = 1; i < PROC_TABLE_SIZE; i++)
@@ -396,14 +401,14 @@ int wait(int pid, int* wstatus, int options)
                 if (process_table[i].state != UNUSED && process_table[i].ppid == pc.curr_process->pid){
                     has_child = true;
                     if (contains(&pc.zombies, (struct Node*)&process_table[i])){
-                        zpid = process_table[i].pid;
+                        pid = process_table[i].pid;
                         break;
                     }
                 }
             }
         }
         else{ /* Verify if the PID the current process is waiting for is a valid process */
-            struct Process* process = get_process(zpid);
+            struct Process* process = get_process(pid);
             if (process != NULL && process->state != UNUSED)
                 has_child = true;
         }
@@ -412,7 +417,7 @@ int wait(int pid, int* wstatus, int options)
             return -1;
     
         if (!empty(&pc.zombies)){
-            zombie = (struct Process*)remove_evt(&pc.zombies, NULL, zpid);
+            zombie = (struct Process*)remove_evt(&pc.zombies, NULL, pid);
             if (zombie != NULL){
                 /* There's a chance some process or handler already cleaned up this zombie */
                 if (zombie->state != KILLED)
@@ -431,7 +436,7 @@ int wait(int pid, int* wstatus, int options)
                             zombie->fd_table[i]->inode = NULL;
                     }
                 }
-                /* Set process state to unused and reset daemon status to avoid getting carried over to another process using the same slot
+                /* Mark process table slot free and reset fields which can potentially get carried over to another process using the same slot
                    We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
                 zombie->state = UNUSED;
                 zombie->daemon = false;
@@ -440,7 +445,7 @@ int wait(int pid, int* wstatus, int options)
                     *wstatus = zombie->status;
                 zombie->status = 0;
                 /* For this special wait condition, probe for remaining zombies */
-                if (pid == -1)
+                if (pc.curr_process->wpid == -1)
                     wake_up(ZOMBIE_CLEANUP);
                 break;
             }
@@ -450,7 +455,7 @@ int wait(int pid, int* wstatus, int options)
         sleep(ZOMBIE_CLEANUP);
     }
 
-    return zpid;
+    return pid;
 }
 
 int fork(void)
@@ -623,6 +628,26 @@ int kill(int pid, int signal)
                     remove(&pc.wait_list, (struct Node*)&process_table[i]);
                     process_table[i].state = READY;
                     push_back(&pc.ready_que, (struct Node*)&process_table[i]);
+                }
+            }
+            else if (process_table[i].state == KILLED && signal == SIGHUP){
+                if (process_table[i].ppid != 1){ /* Release rogue or unattended zombie not owned by init */
+                    kfree(process_table[i].stack);
+                    free_uvm(process_table[i].page_map);
+                    /* Decrement ref counts of all files left open by the zombie */
+                    for(int i = 0; i < MAX_OPEN_FILES; i++)
+                    {
+                        if (process_table[i].fd_table[i] != NULL){
+                            process_table[i].fd_table[i]->ref_count--;
+                            process_table[i].fd_table[i]->inode->ref_count--;
+                            /* Note that we can't release the inode based on only the file entry ref count because other file entries could be pointing to it
+                            Hence the in core inode should be released (entry set to NULL) only if the inode ref count is zero */
+                            if (process_table[i].fd_table[i]->inode->ref_count == 0)
+                                process_table[i].fd_table[i]->inode = NULL;
+                        }
+                    }
+                    process_table[i].state = UNUSED;
+                    process_table[i].daemon = false;
                 }
             }
         }

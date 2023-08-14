@@ -82,18 +82,19 @@ static void def_handler_entry(int signal)
         exit(target_proc, signal, true);
         break;
     }
-    case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in unattended zombies */
+    case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in rogue zombies */
         /* Ignore kill request for idle and init process */
         if (target_proc->pid == 0 || target_proc->pid == 1)
             return;
         target_proc->status |= signal & 0x7f;
-        /* Remove the process from the ready queue and handover children if any to the init process */
+        /* Remove the process from the ready queue */
         remove(&pc->ready_que, (struct Node*)target_proc);
-        switch_parent(target_proc->pid, 1);
-        /* Inform the parent */
+        /* Inform the parent and pass the child's exit status */
         struct Process* parent = get_process(target_proc->ppid);
-        if (parent != NULL)
+        if (parent != NULL && parent->state != KILLED){
             parent->signals |= (1 << SIGCHLD);
+            parent->status = target_proc->status;
+        }
         /* Yield the current foreground status if holding one, for other processes to claim */
         if (pc->fg_process != NULL){
             if (target_proc->pid == pc->fg_process->pid)
@@ -102,7 +103,10 @@ static void def_handler_entry(int signal)
         /* Wake up processes that might be paused while this one was running in the foreground */
         if (!target_proc->daemon)
             wake_up(FG_PAUSED);
+        /* Mark as killed and reset process table entry fields which might interfere with a new process occupying that slot */
         target_proc->state = KILLED;
+        target_proc->event = target_proc->pid;
+        target_proc->daemon = false;
         push_back(&pc->zombies, (struct Node*)target_proc);
         break;
     case SIGCHLD:

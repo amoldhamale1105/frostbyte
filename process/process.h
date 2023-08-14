@@ -30,6 +30,7 @@ struct Process
     char name[MAX_FILENAME_BYTES+1];
     int pid;
     int ppid;
+    int wpid; /* PID a process is waiting on */
     int state;
     int status; /* Exit status of the process */
     bool daemon; /* Whether the process runs in the background as daemon */
