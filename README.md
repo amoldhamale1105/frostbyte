@@ -74,13 +74,14 @@ Default user is `root` with default password as `toor` (root spelled backwards)
 
 On successful login, a shell for current user is activated to interact with the system. You can log out by entering `exit` on the main shell (usually PID 2) or issuing a `kill` command with the main shell PID.  
 
-![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/061b4609-90c0-497b-a814-0e39007d7c8c)
+![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/c1c977bc-66ca-438e-af24-3a7cf33cf0bb)
 
 To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
 
 ## Features and Capabilities
-This content is valid as of Aug 7, 2023. It might be outdated for current version of the kernel on master branch. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for a specific version and encompassing features  
-> **__Note:__** This section is a more of a user guide than a development guide. Custom user programs can be written for frostbyte similar to the programs developed for various commands. A separate development guide and API documentation will be created shortly with all the custom library functions and system calls. In the meantime, if you want to develop your own userspace app for frostbyte, check out the header `user/lib/flib.h` for prototypes and `user/test` and `user/sampleapp` as reference applications
+This section may not be up to date with the current version of the kernel on master branch. However, it is highly recommended to read through it to get an idea of what **frostbyte** offers as its core functionality and extended features.  
+You can always learn more about any system by actually using it. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for out of the box images of a specific version and associated features. It is recommended to use the latest stable version.  
+> **__Note:__** This section is a more of a user guide than a development guide. Custom user programs can be written for frostbyte similar to the programs developed for various commands. A separate development guide and API documentation will be created shortly with all the custom library functions and system calls. In the meantime, if you want to develop your own userspace app for frostbyte, check out the header `user/lib/flib.h` for library and system call prototypes and `user/test` and `user/sampleapp` as reference applications
 
 ### Features
 - Kernel runs at privileged [exception level](https://developer.arm.com/documentation/102412/0103/Privilege-and-Exception-levels/Exception-levels) 1 (EL1)
@@ -122,9 +123,8 @@ sh, uname, ls, ps, echo, cat, kill, exit, shutdown
 Usage and short description of any command can be viewed with the `-h` option except for the `echo` command which simply echoes passed arguments and evaluates environment variables or special expressions like `$$` (current shell PID) and `$?` (last command exit status)  
 For example, `uname -h` will print the following output to the terminal
 ```
-Usage:
-	uname [OPTION]
-Print certain system information.  With no OPTION, same as -s.
+Usage:	uname [OPTION]
+	Print certain system information.  With no OPTION, same as -s.
 
 	-h	display this help and exit
 	-a	print all system information in following order:
