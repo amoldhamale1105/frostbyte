@@ -60,6 +60,7 @@ static struct Process* alloc_new_process(void)
     process->status = 0;
     process->signals = 0;
     process->wpid = 0;
+    process->jobs = process->job_spec = 0;
     /* Assign a PID and increment the global PID counter. Processes may share the same table slot but never the same PID number */
     process->pid = pid_num++;
     /* Get the context frame which is located at the top of the kernel stack */
@@ -151,6 +152,16 @@ static void schedule(void)
     struct Process* old_process = pc.curr_process;
     struct Process* new_process = NULL;
 
+    /* Check for pending signals on suspended processes */
+    struct Process* sjob = (struct Process*)front(&pc.suspended);
+    struct Process* next_sjob = NULL;
+    while (sjob != NULL)
+    {
+        /* Save the next job so that we do not lose track if the check_pending_signals function removes current job */
+        next_sjob = (struct Process*)sjob->next;
+        check_pending_signals(sjob);
+        sjob = next_sjob;
+    }
     /* While returning to user mode from kernel mode, check for any pending signals on the process about to be scheduled */
     while (!empty(&pc.ready_que))
     {
@@ -239,7 +250,7 @@ int get_status(int pid)
     return process != NULL ? process->status : INT32_MAX;
 }
 
-int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
+int get_proc_data(int pid, int *ppid, int *state, int* job_spec, char *name, char* args_buf)
 {
     int args_size = 0;
 
@@ -250,6 +261,8 @@ int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
                 *ppid = process_table[i].ppid;
             if (state != NULL)
                 *state = process_table[i].state;
+            if (job_spec != NULL)
+                *job_spec = process_table[i].job_spec;
             if (name != NULL)
                 memcpy(name, process_table[i].name, strlen(process_table[i].name));
             /* Retrieve the program arguments from the bottom of allocated process kernel stack */
@@ -273,7 +286,7 @@ int get_proc_data(int pid, int *ppid, int *state, char *name, char* args_buf)
     return args_size;
 }
 
-int get_active_pids(int* pid_list, int all)
+int get_active_pids(struct Process* process, int* pid_list, int all)
 {
     int count = 0;
     /* Omit the idle process which occupies the first slot in the process table
@@ -287,7 +300,7 @@ int get_active_pids(int* pid_list, int all)
                 count++;
             }
             else{ /* Get PIDs of current session */
-                if ((process_table[i].ppid == pc.curr_process->ppid) || (process_table[i].pid == pc.curr_process->ppid)){
+                if ((process_table[i].ppid == process->pid) || (process_table[i].pid == process->pid)){
                     if (pid_list != NULL)
                         pid_list[count] = process_table[i].pid;
                     count++;
@@ -299,13 +312,23 @@ int get_active_pids(int* pid_list, int all)
     return count;
 }
 
-void switch_parent(int curr_ppid, int new_ppid)
+void switch_parent(int curr_ppid, int new_ppid, bool transfer_jobs)
 {
+    struct Process* parent = get_process(new_ppid);
+    if (!parent || parent->state == KILLED)
+        return;
+    
     for(int i = 1; i < PROC_TABLE_SIZE; i++)
     {
         /* Reassign parent for all children which have current parent with curr_ppid */
-        if (process_table[i].state != UNUSED && process_table[i].ppid == curr_ppid)
+        if (process_table[i].state != UNUSED && process_table[i].ppid == curr_ppid){
             process_table[i].ppid = new_ppid;
+            /* Handover running jobs to new parent */
+            if (transfer_jobs && process_table[i].job_spec && process_table[i].state != STOPPED){
+                parent->jobs++;
+                process_table[i].job_spec = parent->jobs;
+            }
+        }
     }
 }
 
@@ -357,7 +380,7 @@ void exit(struct Process* process, int status, bool sig_handler_req)
 {
     if (process == NULL || process->state == UNUSED || process->state == KILLED)
         return;
-    process->status |= sig_handler_req ? (status & 0x7f) : ((status & 0xff) << 8);
+    process->status = sig_handler_req ? status : ((status & 0xff) << 8);
     /* Set the state to killed and event to PID for the wait function to sweep it later */
     process->state = KILLED;
     process->event = process->pid;
@@ -366,14 +389,26 @@ void exit(struct Process* process, int status, bool sig_handler_req)
     if (parent != NULL && parent->state != KILLED){
         parent->signals |= (1 << SIGCHLD);
         parent->status = process->status;
-        /* If the parent has abandoned this process, make init a foster parent to clean it up as a zombie */
-        if (parent->wpid >= 0 && (parent->wpid != process->pid))
-            process->ppid = 1;
     }
     else /* Orphan process. Make init a foster parent */
         process->ppid = 1;
+    /* Terminate stopped jobs and recursively kill their children */
+    struct Process* sjob = (struct Process*)front(&pc.suspended);
+    struct Process* next_sjob;
+    while (sjob != NULL)
+    {
+        next_sjob = (struct Process*)sjob->next;
+        if (sjob->ppid == process->pid && sjob->state == STOPPED){
+            sjob->state = KILLED;
+            sjob->event = sjob->pid;
+            kill(sjob, 0, SIGTERM);
+            remove(&pc.suspended, (struct Node*)sjob);
+            push_back(&pc.zombies, (struct Node*)sjob);
+        }
+        sjob = next_sjob;
+    }
     /* Handover potential orphan children if any to the init process */
-    switch_parent(process->pid, 1);
+    switch_parent(process->pid, 1, true);
     /* Abdicate status as current system foreground process if it was one */
     if (pc.fg_process != NULL){
         if (process->pid == pc.fg_process->pid)
@@ -385,7 +420,7 @@ void exit(struct Process* process, int status, bool sig_handler_req)
     push_back(&pc.zombies, (struct Node*)process);
 
     /* Wake up the process sleeping in wait to clean up this zombie process */
-    wake_up(ZOMBIE_CLEANUP);
+    wake_up(STATE_CHANGE);
 
     /* Put off scheduling if invoked by a signal handler because it will have work to do */
     if (!sig_handler_req)
@@ -394,15 +429,40 @@ void exit(struct Process* process, int status, bool sig_handler_req)
 
 int wait(int pid, int* wstatus, int options)
 {
-    struct Process* zombie;
-    /* Return failure if the given process does not exist or if the PID value is invalid */
+    int wpid;
     if (pid == 0 || pid < -1)
         return -1;
     pc.curr_process->wpid = pid;
     
     while (1)
     {
+        wpid = pid;
         bool has_child = false;
+        /* Acknowledge a stopped process */
+        if (pc.curr_process->wpid > 1){
+            struct Process* process = get_process(pc.curr_process->wpid);
+            if (process && process->state == STOPPED && contains(&pc.suspended, (struct Node*)process)){
+                pc.curr_process->wpid = pid;
+                if (options & WUNTRACED){ /* Return with PID of stopped process */
+                    if (wstatus != NULL)
+                        *wstatus = process->status;
+                    break;
+                }
+            }
+        }
+        /* Make init a foster parent of abandoned zombies */
+        if (pc.curr_process->pid == 1){
+            struct Process* process = (struct Process*)front(&pc.zombies);
+            while (process != NULL)
+            {
+                if (process->ppid != 1){
+                    struct Process* parent = get_process(process->ppid);
+                    if (!parent || (parent->wpid >= 0 && process->pid != parent->wpid))
+                        process->ppid = 1;
+                }
+                process = (struct Process*)process->next;
+            }
+        }
         /* Search for first available zombie child */
         if (pid == -1){
             for(int i = 1; i < PROC_TABLE_SIZE; i++)
@@ -410,61 +470,56 @@ int wait(int pid, int* wstatus, int options)
                 if (process_table[i].state != UNUSED && process_table[i].ppid == pc.curr_process->pid){
                     has_child = true;
                     if (contains(&pc.zombies, (struct Node*)&process_table[i])){
-                        pid = process_table[i].pid;
+                        wpid = process_table[i].pid;
                         break;
                     }
                 }
             }
         }
-        else{ /* Verify if the PID the current process is waiting for is a valid process */
-            struct Process* process = get_process(pid);
-            if (process != NULL && process->state != UNUSED)
+        else{ /* Verify if the PID the current process is waiting for is a valid child process */
+            struct Process* process = get_process(wpid);
+            if (process != NULL && process->ppid == pc.curr_process->pid)
                 has_child = true;
         }
         /* If the current process doesn't have any children, there's no need to wait */
         if (!has_child)
             return -1;
-    
-        if (!empty(&pc.zombies)){
-            zombie = (struct Process*)remove_evt(&pc.zombies, NULL, pid);
-            if (zombie != NULL){
-                /* There's a chance some process or handler already cleaned up this zombie */
-                if (zombie->state != KILLED)
-                    break;
-                kfree(zombie->stack);
-                free_uvm(zombie->page_map);
-                /* Decrement ref counts of all files left open by the zombie */
-                for(int i = 0; i < MAX_OPEN_FILES; i++)
-                {
-                    if (zombie->fd_table[i] != NULL){
-                        zombie->fd_table[i]->ref_count--;
-                        zombie->fd_table[i]->inode->ref_count--;
-                        /* Note that we can't release the inode based on only the file entry ref count because other file entries could be pointing to it
-                           Hence the in core inode should be released (entry set to NULL) only if the inode ref count is zero */
-                        if (zombie->fd_table[i]->inode->ref_count == 0)
-                            zombie->fd_table[i]->inode = NULL;
-                    }
-                }
-                /* Mark process table slot free and reset fields which can potentially get carried over to another process using the same slot
-                   We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
-                zombie->state = UNUSED;
-                zombie->daemon = false;
-                /* Return the wait status to the caller and then clear it */
-                if (wstatus != NULL)
-                    *wstatus = zombie->status;
-                zombie->status = 0;
-                /* For this special wait condition, probe for remaining zombies */
-                if (pc.curr_process->wpid == -1)
-                    wake_up(ZOMBIE_CLEANUP);
+
+        struct Process* wproc = (struct Process*)remove_evt(&pc.zombies, NULL, wpid);
+        if (wproc != NULL){
+            /* There's a chance some process or handler already cleaned up this zombie */
+            if (wproc->state != KILLED)
                 break;
+            kfree(wproc->stack);
+            free_uvm(wproc->page_map);
+            /* Decrement ref counts of all files left open by the zombie */
+            for(int i = 0; i < MAX_OPEN_FILES; i++)
+            {
+                if (wproc->fd_table[i] != NULL){
+                    wproc->fd_table[i]->ref_count--;
+                    wproc->fd_table[i]->inode->ref_count--;
+                    /* Note that we can't release the inode based on only the file entry ref count because other file entries could be pointing to it
+                        Hence the in core inode should be released (entry set to NULL) only if the inode ref count is zero */
+                    if (wproc->fd_table[i]->inode->ref_count == 0)
+                        wproc->fd_table[i]->inode = NULL;
+                }
             }
+            /* Mark process table slot free and reset fields which can potentially get carried over to another process using the same slot
+                We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
+            wproc->state = UNUSED;
+            wproc->daemon = false;
+            /* Return the wait status to the caller and then clear it */
+            if (wstatus != NULL)
+                *wstatus = wproc->status;
+            wproc->status = 0;
+            break;
         }
         if (options & WNOHANG)
             return 0;
-        sleep(ZOMBIE_CLEANUP);
+        sleep(STATE_CHANGE);
     }
 
-    return pid;
+    return wpid;
 }
 
 int fork(void)
@@ -531,6 +586,11 @@ int exec(struct Process* process, char* name, const char* args[])
         {
             new_arg_size = strlen(args[arg_count]);
             if (new_arg_size == 1 && args[arg_count][0] == '&'){
+                struct Process* parent = get_process(process->ppid);
+                if (parent != NULL && parent->state != KILLED){
+                    parent->jobs++;
+                    process->job_spec = parent->jobs;
+                }
                 process->daemon = true;
                 /* Yield the foreground status if inherited from the parent during a forking event */
                 if (pc.fg_process != NULL){
@@ -619,18 +679,22 @@ int exec(struct Process* process, char* name, const char* args[])
     return 0;
 }
 
-int kill(int pid, int signal)
+int kill(struct Process* process, int pid, int signal)
 {
     if (signal < 0 || signal > TOTAL_SIGNALS-1)
         return -1;
     if (pid == -1){ /* Send signal to all processes except init process (PID 1) */
-        int curr_pid = get_curr_process()->pid;
         for(int i = 2; i < PROC_TABLE_SIZE; i++)
         {
             /* The signal is not meant for the process which sent it */
-            if (process_table[i].pid == curr_pid)
+            if (process_table[i].pid == process->pid)
                 continue;
             if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED)){
+                /* Discard pending continue signal on reception of the stop signal and vice versa */
+                if (signal == SIGSTOP || signal == SIGTSTP)
+                    process_table[i].signals &= ~(1 << SIGCONT);
+                else if (signal == SIGCONT)
+                    process_table[i].signals &= ~((1 << SIGSTOP) | (1 << SIGTSTP));
                 process_table[i].signals |= (1 << signal);
                 /* Wake up sleeping processes to act on the broadcast signal */
                 if (process_table[i].state == SLEEP){
@@ -671,7 +735,6 @@ int kill(int pid, int signal)
         return 0;
     }
     if (pid == 0){ /* Send signal to all children */
-        struct Process* process = get_curr_process();
         for(int i = 2; i < PROC_TABLE_SIZE; i++)
         {
             /* The signal is not meant for the process which sent it */
@@ -679,6 +742,11 @@ int kill(int pid, int signal)
                 continue;
             if (!(process_table[i].state == UNUSED || process_table[i].state == KILLED) && 
                 process->pid == process_table[i].ppid){
+                /* Discard pending continue signal on reception of the stop signal and vice versa */
+                if (signal == SIGSTOP || signal == SIGTSTP)
+                    process_table[i].signals &= ~(1 << SIGCONT);
+                else if (signal == SIGCONT)
+                    process_table[i].signals &= ~((1 << SIGSTOP) | (1 << SIGTSTP));
                 process_table[i].signals |= (1 << signal);
                 /* Wake up sleeping processes to act on the group signal */
                 if (process_table[i].state == SLEEP){
@@ -693,7 +761,11 @@ int kill(int pid, int signal)
     struct Process* target_proc = get_process(pid);
     if (!target_proc)
         return -1;
-    
+    /* Discard pending continue signal on reception of the stop signal and vice versa */
+    if (signal == SIGSTOP || signal == SIGTSTP)
+        target_proc->signals &= ~(1 << SIGCONT);
+    else if (signal == SIGCONT)
+        target_proc->signals &= ~((1 << SIGSTOP) | (1 << SIGTSTP));
     target_proc->signals |= (1 << signal);
     /* Wake up the process if sleeping and place it on the ready queue, for it to act on the received signal */
     if (target_proc->state == SLEEP){

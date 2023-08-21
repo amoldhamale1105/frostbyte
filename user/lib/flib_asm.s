@@ -219,23 +219,25 @@ wait:
     mov x1, x0
     mov x0, #1
     neg x0, x0
+    mov x2, 0
 waitpid:
-    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Allocate 24 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
-    sub sp, sp, #16
+    sub sp, sp, #24
     stp x0, x1, [sp]
+    str x2, [sp, #16]
     # Set the syscall index to 3 (wait) in x8
     mov x8, #3
     # Load the arg count in x0
-    mov x0, #2
+    mov x0, #3
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
     mov x1, sp
     # Operating system trap
     svc #0
 
     # Restore the stack
-    add sp, sp, #16
+    add sp, sp, #24
     ret
 
 open_file:
@@ -432,24 +434,24 @@ get_pstatus:
     ret
 
 get_proc_data:
-    # Allocate 40 bytes on the stack to accomodate the args to this function
+    # Allocate 48 bytes on the stack to accomodate the args to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the args on the stack beforehand
-    sub sp, sp, #40
+    sub sp, sp, #48
     stp x0, x1, [sp]
     stp x2, x3, [sp, #16]
-    str x4, [sp, #(16*2)]
+    stp x4, x5, [sp, #(16*2)]
     # Set the syscall index to 15 (get process data for given pid) in x8
     mov x8, #15
     # Load the arg count in x0
-    mov x0, #5
+    mov x0, #6
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
     mov x1, sp
     # Operating system trap
     svc #0
 
     # Restore the stack
-    add sp, sp, #40
+    add sp, sp, #48
     ret
 
 kill:

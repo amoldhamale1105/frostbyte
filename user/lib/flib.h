@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 struct DirEntry {
     uint8_t name[8];
@@ -50,6 +51,7 @@ enum En_ProcessState
     RUNNING,
     READY,
     SLEEP,
+    STOPPED,
     KILLED
 };
 
@@ -68,6 +70,7 @@ enum En_ProcessState
 #define ASCII_DELETE 127
 #define ASCII_ESCAPE 27
 #define ASCII_CTRL_C 0x03
+#define ASCII_CTRL_Z 26
 
 int printf(const char* fmt, ...);
 int scanf(const char *fmt, ...);
@@ -87,6 +90,7 @@ uint32_t atoui(char* str);
 uint64_t atox(char* str);
 int64_t power(int base, int exp);
 int abs(int num);
+void sort(int* arr, size_t size);
 
 /* System call library functions */
 
@@ -107,7 +111,7 @@ char getchar(void);
 int getpid(void);
 int getppid(void);
 int get_pstatus(void);
-int get_proc_data(int pid, int* ppid, int* state, char* procname, char* procargs);
+int get_proc_data(int pid, int* ppid, int* state, int* job_spec, char* procname, char* procargs);
 int read_root_dir(void* buf);
 int get_active_procs(int* pid_list, int all);
 

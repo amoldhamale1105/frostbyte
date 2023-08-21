@@ -48,6 +48,7 @@ user:
 	cd ./user/login && $(MAKE)
 	cd ./user/shell && $(MAKE)
 	cd ./user/ps && $(MAKE)
+	cd ./user/jobs && $(MAKE)
 	cd ./user/list && $(MAKE)
 	cd ./user/echo && $(MAKE)
 	cd ./user/cat && $(MAKE)
@@ -64,6 +65,7 @@ user_clean:
 	cd ./user/login && $(MAKE) clean
 	cd ./user/shell && $(MAKE) clean
 	cd ./user/ps && $(MAKE) clean
+	cd ./user/jobs && $(MAKE) clean
 	cd ./user/list && $(MAKE) clean
 	cd ./user/echo && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean

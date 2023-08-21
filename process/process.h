@@ -34,6 +34,8 @@ struct Process
     int state;
     int status; /* Exit status of the process */
     bool daemon; /* Whether the process runs in the background as daemon */
+    int jobs; /* Jobs created as a parent */
+    int job_spec; /* Job specification as a child */
     int event; /* Event a process is waiting on */
     uint64_t sp; /* Process kernel stack pointer */
     uint64_t page_map;
@@ -50,6 +52,7 @@ struct ProcessControl
     struct Process* fg_process; /* Current foreground process. This is not the same as current process */
     struct List ready_que;
     struct List wait_list;
+    struct List suspended;
     struct List zombies; /* Processes that have exited and awaiting resource cleanup */
 };
 
@@ -59,12 +62,13 @@ struct ProcessControl
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */
 #define MAX_OPEN_FILES 100
 #define WNOHANG 1
+#define WUNTRACED 2
 
 enum En_SleepEvent
 {
     NONE = -255,
     SLEEP_SYSCALL,
-    ZOMBIE_CLEANUP,
+    STATE_CHANGE,
     KEYBOARD_INPUT,
     DAEMON_INPUT,
     FG_PAUSED
@@ -77,6 +81,7 @@ enum En_ProcessState
     RUNNING,
     READY,
     SLEEP,
+    STOPPED,
     KILLED
 };
 
@@ -88,15 +93,15 @@ struct Process* get_curr_process(void);
 struct Process *get_fg_process(void);
 struct Process* get_process(int pid);
 int get_status(int pid);
-int get_proc_data(int pid, int* ppid, int* state, char* name, char* args_buf);
-int get_active_pids(int* pid_list, int all);
-void switch_parent(int curr_ppid, int new_ppid);
+int get_proc_data(int pid, int* ppid, int* state, int* job_spec, char* name, char* args_buf);
+int get_active_pids(struct Process* process, int* pid_list, int all);
+void switch_parent(int curr_ppid, int new_ppid, bool transfer_jobs);
 void sleep(int event);
 void wake_up(int event);
 void exit(struct Process* process, int status, bool sig_handler_req);
 int wait(int pid, int* wstatus, int options);
 int fork(void);
 int exec(struct Process* process, char* name, const char* args[]);
-int kill(int pid, int signal);
+int kill(struct Process* process, int pid, int signal);
 
 #endif

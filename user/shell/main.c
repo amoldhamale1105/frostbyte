@@ -18,6 +18,7 @@
 
 #include "shell.h"
 #include "signal.h"
+#include <sys/wait.h>
 
 void sighandler(int signum)
 {
@@ -36,6 +37,7 @@ int main(int argc, char** argv)
     char cmd_buf[MAX_CMD_BUF_SIZE];
     char echo_buf[MAX_CMD_BUF_SIZE];
     int cmd_size = 0;
+    int wstatus;
     /* Default username in case shell is invoked without the '-u' option */
     memcpy(username, "user", 4);
 
@@ -51,6 +53,7 @@ int main(int argc, char** argv)
 
     /* Register custom handler for keyboard interrupt so that the shell does not get terminated on Ctrl+C from user */
     signal(SIGINT, sighandler);
+    signal(SIGTSTP, SIG_IGN);
 
     while (1)
     {
@@ -94,10 +97,35 @@ int main(int argc, char** argv)
                 else{
                     /* Don't make the parent wait since it's a background process, so that the shell becomes available to subsequent commands */
                     if (arg_count > 0 && strlen(args[arg_count-1]) == 1 && args[arg_count-1][0] == '&'){
-                        printf("[%s] %d\n", echo_buf+cmd_pos, cmd_pid);
+                        int jobspec;
+                        get_proc_data(cmd_pid, NULL, NULL, &jobspec, NULL, NULL);
+                        printf("[%d] %d\n", jobspec, cmd_pid);
                         continue;
                     }
-                    waitpid(cmd_pid, NULL, 0);
+                    waitpid(cmd_pid, &wstatus, WUNTRACED);
+                    if (WIFSIGNALED(wstatus)){
+                        switch (WTERMSIG(wstatus))
+                        {
+                        case SIGINT:
+                            printf("\n");
+                            break;
+                        case SIGABRT:
+                            printf("Aborted\n");
+                            break;
+                        case SIGKILL:
+                            printf("Killed\n");
+                            break;
+                        case SIGTERM:
+                            printf("Terminated\n");
+                        default:
+                            break;
+                        }
+                    }
+                    else if (WIFSTOPPED(wstatus)){
+                        int job_spec;
+                        get_proc_data(cmd_pid, NULL, NULL, &job_spec, NULL, NULL);
+                        printf("^Z\n[%d]  Stopped\t%s\n", job_spec, echo_buf+cmd_pos);
+                    }
                 }
             }
         }

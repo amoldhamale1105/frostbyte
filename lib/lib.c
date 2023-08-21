@@ -85,6 +85,11 @@ struct Node* front(const struct List* list)
     return list->head;
 }
 
+struct Node *back(const struct List *list)
+{
+    return list->tail;
+}
+
 bool contains(const struct List *list, const struct Node *node)
 {
     const struct Node* curr_node = list->head;
@@ -151,6 +156,20 @@ struct Node *find_evt(const struct Node *head, int event)
     }
     
     return (struct Node*)node;
+}
+
+struct Node *find(const struct Node *head, const struct Node *node)
+{
+    const struct Node* curr_node = head;
+
+    while (curr_node != NULL)
+    {
+        if (node == curr_node)
+            break;
+        curr_node = curr_node->next;
+    }
+    
+    return (struct Node*)curr_node;
 }
 
 bool empty(const struct List *list)

@@ -31,6 +31,7 @@
 #define SIGCHLD 17
 #define SIGCONT 18
 #define SIGSTOP 19
+#define SIGTSTP 20 /* Stop signal issued from shell */
 
 typedef void (*SIGHANDLER)(int);
 typedef void (*SIGHANDLER_PROXY)(void);

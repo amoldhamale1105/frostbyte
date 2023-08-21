@@ -37,7 +37,8 @@ int main(int argc, char** argv)
                             continue;
                         }
                         else if (argv[i][j+1] == '?'){
-                            printf("%d", WEXITSTATUS(get_pstatus()));
+                            int status = get_pstatus();
+                            printf("%d", WIFEXITED(status) ? WEXITSTATUS(status) : status);
                             j++;
                             continue;
                         }

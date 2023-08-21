@@ -18,7 +18,6 @@
 
 #include "flib.h"
 #include <stdbool.h>
-#include <stddef.h>
 
 #define MAX_SCAN_BUF_SIZE 1024
 
@@ -138,6 +137,23 @@ int abs(int num)
     return num < 0 ? -num : num;
 }
 
+void sort(int *arr, size_t size)
+{
+    if (!arr || size == 0)
+        return;
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = i+1; j < size; j++)
+        {
+            if (arr[i] > arr[j]){ /* Swap */
+                arr[i] = arr[i] + arr[j];
+                arr[j] = arr[i] - arr[j];
+                arr[i] = arr[i] - arr[j];
+            }
+        }
+    }
+}
+
 static int read_input(char* buf, int max_size)
 {
     char shell_echo[4];
@@ -194,7 +210,7 @@ static int read_input(char* buf, int max_size)
             buf[write_count++] = ch;
         }
         else{
-            if (ch == ASCII_CTRL_C)
+            if (ch == ASCII_CTRL_C || ch == ASCII_CTRL_Z)
                 continue;
             *shell_echo = ch;
             printf("%s", shell_echo);

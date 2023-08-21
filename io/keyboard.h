@@ -32,6 +32,7 @@ struct KeyBuffer
 #define MAX_KEY_BUF_SIZE 500
 
 #define ASCII_CTRL_C 0x03
+#define ASCII_CTRL_Z 26
 
 char read_key_buffer(void);
 void capture_key(void);

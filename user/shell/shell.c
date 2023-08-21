@@ -143,7 +143,7 @@ int read_cmd(char* buf, char* echo_buf)
             *key_acc = cmd_ch;
         }
         else{
-            if (cmd_ch == ASCII_CTRL_C)
+            if (cmd_ch == ASCII_CTRL_C || cmd_ch == ASCII_CTRL_Z)
                 continue;
             if (*key_acc == ASCII_ESCAPE){
                 int i = 1;

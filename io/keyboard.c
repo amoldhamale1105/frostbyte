@@ -62,9 +62,11 @@ void capture_key(void)
     switch (key)
     {
     case ASCII_CTRL_C:
-        kill(fg_proc->pid, SIGINT);
+        kill(get_curr_process(), fg_proc->pid, SIGINT);
         break;
-    
+    case ASCII_CTRL_Z:
+        kill(get_curr_process(), fg_proc->pid, SIGTSTP);
+        break;
     default:
         break;
     }

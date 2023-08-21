@@ -29,6 +29,8 @@ static struct ProcessControl* pc = NULL;
 /* Global proxy signal handler managing custom handler invokation followed by context restoration */
 static SIGHANDLER_PROXY proxy_handler = NULL;
 
+void def_handler_entry(int signal);
+
 void check_pending_signals(struct Process* process)
 {
     if (process != NULL && process->signals > 0){
@@ -38,6 +40,8 @@ void check_pending_signals(struct Process* process)
             if (process->state == UNUSED || process->state == KILLED)
                 break;
             if (process->signals & (1 << i)){
+                if (process->state == STOPPED && !(i == SIGKILL || i == SIGCONT))
+                    continue;
                 if (process->handlers[i] != NULL){
                     /* Custom handlers should be invoked in user mode only which can be deduced from the handler address */
                     if (!((uint64_t)(process->handlers[i]) & KERNEL_BASE)){
@@ -60,6 +64,12 @@ void check_pending_signals(struct Process* process)
                         target_proc = process;
                         process->handlers[i](i);
                     }
+                    /* A SIGCONT should always cause a process to be continued regardless of whether it is caught or ignored */
+                    if (i == SIGCONT && !target_proc){
+                        target_proc = process;
+                        def_handler_entry(i);
+                    }
+                    target_proc = NULL;
                 }
                 /* Clear the signal by XORing specific bit, now that it is addressed */
                 process->signals ^= (1 << i);
@@ -68,7 +78,7 @@ void check_pending_signals(struct Process* process)
     }
 }
 
-static void def_handler_entry(int signal)
+void def_handler_entry(int signal)
 {    
     switch (signal)
     {
@@ -78,39 +88,102 @@ static void def_handler_entry(int signal)
     case SIGTERM: { /* Graceful termination where orphans are reassigned, parent informed and memory cleaned */
         /* Remove the process from the ready queue */
         remove(&pc->ready_que, (struct Node*)target_proc);
-        /* Invoke exit for the process to unblock the parent if it is waiting */
-        exit(target_proc, signal, true);
+        /* Invoke exit to do the rest */
+        exit(target_proc, (1 << 8) | signal, true);
         break;
     }
-    case SIGKILL: /* Abrupt and fast killing of a process where cleanup is not performed. May result in rogue zombies */
+    case SIGKILL: { /* Abrupt and forced killing of a process and its children. May result in rogue zombies */
         /* Ignore kill request for idle and init process */
         if (target_proc->pid == 0 || target_proc->pid == 1)
             return;
+        target_proc->status = 1 << 8;
         target_proc->status |= signal & 0x7f;
-        /* Remove the process from the ready queue */
-        remove(&pc->ready_que, (struct Node*)target_proc);
         /* Inform the parent and pass the child's exit status */
         struct Process* parent = get_process(target_proc->ppid);
         if (parent != NULL && parent->state != KILLED){
             parent->signals |= (1 << SIGCHLD);
             parent->status = target_proc->status;
         }
-        /* Yield the current foreground status if holding one, for other processes to claim */
-        if (pc->fg_process != NULL){
-            if (target_proc->pid == pc->fg_process->pid)
-                pc->fg_process = NULL;
+        if (target_proc->state == STOPPED)
+            remove(&pc->suspended, (struct Node*)target_proc);
+        else{
+            /* Remove the process from the ready queue */
+            remove(&pc->ready_que, (struct Node*)target_proc);
+            /* Yield the current foreground status if holding one, for other processes to claim */
+            if (pc->fg_process != NULL){
+                if (target_proc->pid == pc->fg_process->pid)
+                    pc->fg_process = parent && !parent->daemon ? parent : NULL;
+            }
+            /* Wake up processes that might be paused while this one was running in the foreground */
+            if (!target_proc->daemon)
+                wake_up(FG_PAUSED);
         }
-        /* Wake up processes that might be paused while this one was running in the foreground */
-        if (!target_proc->daemon)
-            wake_up(FG_PAUSED);
+        /* Make init the new parent to clean up killed children */
+        switch_parent(target_proc->pid, 1, false);
+        kill(target_proc, 0, SIGKILL);
         /* Mark as killed and reset process table entry fields which might interfere with a new process occupying that slot */
         target_proc->state = KILLED;
         target_proc->event = target_proc->pid;
         target_proc->daemon = false;
         push_back(&pc->zombies, (struct Node*)target_proc);
+        /* Unblock the parent if it is waiting */
+        wake_up(STATE_CHANGE);
         break;
-    case SIGCHLD:
-        /* SIGCHLD is not supposed to be handled by the kernel. It's the parent's responsibilty */
+    }
+    case SIGTSTP:
+    case SIGSTOP: {
+        /* Ignore stop request for idle and init process */
+        if (target_proc->pid == 0 || target_proc->pid == 1)
+            return;
+        if (target_proc->state == STOPPED)
+            return;
+        /* Remove the process from the ready queue */
+        remove(&pc->ready_que, (struct Node*)target_proc);
+        target_proc->status |= 0x7f;
+        /* Inform the parent and create job */
+        struct Process* parent = get_process(target_proc->ppid);
+        if (parent != NULL && parent->state != KILLED){
+            parent->signals |= (1 << SIGCHLD);
+            parent->status = target_proc->status;
+            parent->wpid = target_proc->pid;
+            if (!target_proc->job_spec){ /* Preserve job if already defined */
+                parent->jobs++;
+                target_proc->job_spec = parent->jobs;
+            }
+        }
+        /* Yield the current foreground status if holding one, for other processes to claim */
+        if (pc->fg_process != NULL){
+            if (target_proc->pid == pc->fg_process->pid)
+                pc->fg_process = parent && !parent->daemon ? parent : NULL;
+        }
+        /* Wake up processes that might be paused while this one was running in the foreground */
+        if (!target_proc->daemon)
+            wake_up(FG_PAUSED);
+        target_proc->state = STOPPED;
+        push_back(&pc->suspended, (struct Node*)target_proc);
+        /* Unblock the parent if it is waiting */
+        wake_up(STATE_CHANGE);
+        break;
+    }
+    case SIGCONT: {
+        /* Ignore continue request for idle and init process */
+        if (target_proc->pid == 0 || target_proc->pid == 1)
+            return;
+        /* Remove process from the suspended list and place it on ready queue if it is currently stopped */
+        if (target_proc->state == STOPPED){
+            remove(&pc->suspended, (struct Node*)target_proc);
+            target_proc->state = READY;
+            push_back(&pc->ready_que, (struct Node*)target_proc);
+            /* Clear previous stopped status and assign new status */
+            target_proc->status &= ~0x7f;
+            target_proc->status |= signal & 0x7f;
+            /* Inform the parent */
+            struct Process* parent = get_process(target_proc->ppid);
+            if (parent != NULL && parent->state != KILLED)
+                parent->signals |= (1 << SIGCHLD);
+        }
+        break;
+    }
     default:
         break;
     }
@@ -145,6 +218,9 @@ void init_def_handlers(struct ProcessControl* proc_ctrl)
     def_handlers[SIGABRT] = def_handler_entry;
     def_handlers[SIGTERM] = def_handler_entry;
     def_handlers[SIGKILL] = def_handler_entry;
+    def_handlers[SIGSTOP] = def_handler_entry;
+    def_handlers[SIGTSTP] = def_handler_entry;
+    def_handlers[SIGCONT] = def_handler_entry;
 }
 
 void init_handlers(struct Process *process)

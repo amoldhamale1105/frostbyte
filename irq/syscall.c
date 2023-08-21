@@ -126,8 +126,12 @@ static int64_t sys_get_ppid(int64_t* argv)
 
 static int64_t sys_active_procs(int64_t* argv)
 {
-    int* pid_list = (int*)argv[0];
-    return get_active_pids(pid_list, argv[1]);
+    struct Process* process = NULL;
+    if (argv[1] == 0)
+        process = get_process(get_curr_process()->ppid);
+    else if (argv[1] == 2)
+        process = get_curr_process();
+    return get_active_pids(process, (int*)argv[0], argv[1] > 1 ? 0 : argv[1]);
 }
 
 static int64_t sys_pstatus(int64_t* argv)
@@ -137,7 +141,7 @@ static int64_t sys_pstatus(int64_t* argv)
 
 static int64_t sys_proc_data(int64_t* argv)
 {
-    return get_proc_data(argv[0], (int*)argv[1], (int*)argv[2], (char*)argv[3], (char*)argv[4]);
+    return get_proc_data(argv[0], (int*)argv[1], (int*)argv[2], (int*)argv[3], (char*)argv[4], (char*)argv[5]);
 }
 
 static int64_t sys_kill(int64_t* argv)
@@ -145,7 +149,7 @@ static int64_t sys_kill(int64_t* argv)
     /* Forbid signals to the init process */
     if (argv[0] == 1)
         return -1;
-    return kill(argv[0], argv[1]);
+    return kill(get_curr_process(), argv[0], argv[1]);
 }
 
 static int64_t sys_signal(int64_t* argv)

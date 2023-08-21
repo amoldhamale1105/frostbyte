@@ -38,6 +38,9 @@ static char state_rep(int state)
     case SLEEP:
         state_ch = 's';
         break;
+    case STOPPED:
+        state_ch = 'T';
+        break;
     case KILLED:
         state_ch = 'z';
         break;
@@ -122,6 +125,7 @@ int main(int argc, char** argv)
     if (rows == 0 || rows > pid_count)
         rows = pid_count;
     get_active_procs(pid_list, all);
+    sort(pid_list, pid_count);
 
     int ppid, state, args_size, args_pos;
     char procname[MAX_FILENAME_BYTES+1];
@@ -131,10 +135,10 @@ int main(int argc, char** argv)
     for(int i = 0; i < rows; i++)
     {
         memset(procname, 0, sizeof(procname));
-        args_size = get_proc_data(pid_list[i], NULL, NULL, procname, NULL);
+        args_size = get_proc_data(pid_list[i], NULL, NULL, NULL, procname, NULL);
         if (full_format){
             char procargs[args_size];
-            get_proc_data(pid_list[i], &ppid, &state, NULL, args_size > 0 ? procargs : NULL);
+            get_proc_data(pid_list[i], &ppid, &state, NULL, NULL, args_size > 0 ? procargs : NULL);
             printf("%d\t%d\t%c\t%s ", pid_list[i], ppid, state_rep(state), procname);
             args_pos = 0;
             /* Print the process arguments from the procargs buffer filled by the kernel */

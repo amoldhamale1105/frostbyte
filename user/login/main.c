@@ -29,6 +29,7 @@ int main(int argc, char** argv)
     
     /* Ignore keyboard interrupts during login */
     signal(SIGINT, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
     /* Access the passwd file from disk for login verification */
     int passwd_fd = open_file("PASSWD");
     if (passwd_fd < 0){
