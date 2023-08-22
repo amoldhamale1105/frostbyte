@@ -444,6 +444,7 @@ int wait(int pid, int* wstatus, int options)
             if (process && process->state == STOPPED && contains(&pc.suspended, (struct Node*)process)){
                 pc.curr_process->wpid = pid;
                 if (options & WUNTRACED){ /* Return with PID of stopped process */
+                    wpid = process->pid;
                     if (wstatus != NULL)
                         *wstatus = process->status;
                     break;

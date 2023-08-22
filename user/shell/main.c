@@ -102,7 +102,7 @@ int main(int argc, char** argv)
                         printf("[%d] %d\n", jobspec, cmd_pid);
                         continue;
                     }
-                    waitpid(cmd_pid, &wstatus, WUNTRACED);
+                    int wpid = waitpid(cmd_pid, &wstatus, WUNTRACED);
                     if (WIFSIGNALED(wstatus)){
                         switch (WTERMSIG(wstatus))
                         {
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
                     }
                     else if (WIFSTOPPED(wstatus)){
                         int job_spec;
-                        get_proc_data(cmd_pid, NULL, NULL, &job_spec, NULL, NULL);
+                        get_proc_data(wpid, NULL, NULL, &job_spec, NULL, NULL);
                         printf("^Z\n[%d]  Stopped\t%s\n", job_spec, echo_buf+cmd_pos);
                     }
                 }
