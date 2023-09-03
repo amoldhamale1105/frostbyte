@@ -84,6 +84,7 @@ void memmove(void* dst, void* src, unsigned int size);
 int memcmp(void* src1, void* src2, unsigned int size);
 int strlen(const char* str);
 char to_upper(char ch);
+char to_lower(char ch);
 void to_upper_str(char* str);
 int atoi(char* str);
 uint32_t atoui(char* str);

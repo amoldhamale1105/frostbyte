@@ -38,6 +38,13 @@ char to_upper(char ch)
     return ch;
 }
 
+char to_lower(char ch)
+{
+    if (ch >= ASCII_LOWERCASE_START-ASCII_UPPERCASE_OFFSET && ch <= ASCII_LOWERCASE_END-ASCII_UPPERCASE_OFFSET)
+        return (char)(ch + ASCII_UPPERCASE_OFFSET);
+    return ch;
+}
+
 void to_upper_str(char *str)
 {
     while (*str)

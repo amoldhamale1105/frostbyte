@@ -73,15 +73,15 @@ int main(int argc, char** argv)
     else{
         if (argv[1][0] == '-'){
             if (argc > 2){
-                if (argv[2][0] == 'f' || argv[2][0] == 'b'){
+                if (to_lower(argv[2][0]) == 'f' || to_lower(argv[2][0]) == 'b'){
                     switch (argv[1][1])
                     {
                     case 'h':
-                        print_usage(argv[2][0]);
+                        print_usage(to_lower(argv[2][0]));
                         return 0;
                     default:
-                        printf("sh: %cg: invalid option \'%s\'\n", argv[2][0], argv[1]);
-                        printf("Try \'%cg -h\' for more information\n", argv[2][0]);
+                        printf("sh: %cg: invalid option \'%s\'\n", to_lower(argv[2][0]), argv[1]);
+                        printf("Try \'%cg -h\' for more information\n", to_lower(argv[2][0]));
                         break;
                     }
                 }
@@ -89,10 +89,10 @@ int main(int argc, char** argv)
             return 1;
         }
         else{
-            if (argv[1][0] == 'f' || argv[1][0] == 'b'){
+            if (to_lower(argv[2][0]) == 'f' || to_lower(argv[2][0]) == 'b'){
                 req_js = getdefjob();
                 if (req_js < 0){
-                    printf("sh: %cg: current: no such job\n", argv[1][0]);
+                    printf("sh: %cg: current: no such job\n", to_lower(argv[1][0]));
                     return 1;
                 }
             }
@@ -100,8 +100,8 @@ int main(int argc, char** argv)
                 req_js = atoi(argv[1]);
             if (req_js > 0){
                 if (argc > 2){
-                    if (argv[2][0] == 'f' || argv[2][0] == 'b')
-                        req_ctrl = argv[2][0];
+                    if (to_lower(argv[2][0]) == 'f' || to_lower(argv[2][0]) == 'b')
+                        req_ctrl = to_lower(argv[2][0]);
                     else
                         return 1;
                 }
@@ -110,9 +110,9 @@ int main(int argc, char** argv)
             }
             else{
                 if (argc > 2){
-                    if (argv[2][0] == 'f' || argv[2][0] == 'b'){
-                        printf("sh: %cg: bad usage\n", argv[2][0]);
-                        printf("Try \'%cg -h\' for more information\n", argv[2][0]);
+                    if (to_lower(argv[2][0]) == 'f' || to_lower(argv[2][0]) == 'b'){
+                        printf("sh: %cg: bad usage\n", to_lower(argv[2][0]));
+                        printf("Try \'%cg -h\' for more information\n", to_lower(argv[2][0]));
                     }
                 }
                 return 1;
