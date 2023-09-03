@@ -177,6 +177,7 @@ bool empty(const struct List *list)
     return list->head == NULL;
 }
 
+#ifdef DEBUG
 void print_list(const struct List* list, const char* name)
 {
     if (list->head == NULL){
@@ -192,6 +193,7 @@ void print_list(const struct List* list, const char* name)
     }
     printk("end\n");
 }
+#endif
 
 int strlen(const char *str)
 {

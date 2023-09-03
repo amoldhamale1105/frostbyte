@@ -8,7 +8,13 @@ export GCC_VERSION := $(shell $(CC) --version | sed -n 's/.* \([0-9]\+\.[0-9]\+\
 export LINK := $(PREFIX)ld
 export OBJ_COPY := $(PREFIX)objcopy
 
-export CFLAGS := -g -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nostartfiles
+export CFLAGS := -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nostartfiles
+DEBUG ?= 1
+ifeq ($(DEBUG), 1)
+    CFLAGS += -DDEBUG -g
+else
+    CFLAGS += -DNDEBUG
+endif
 export LDFLAGS := -nostdlib
 
 SRC_DIR := .

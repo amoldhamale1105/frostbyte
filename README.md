@@ -35,10 +35,15 @@ export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch
 ```
 
 ### Build
-The top level **Makefile** in the source tree is designed to build the entire project including the userspace and test utilities. It will also take care of copying over required binaries and other files to the FAT16 disk image. 
+The top level **Makefile** in the source tree is designed to build the entire project including the userspace and test utilities. It will also take care of copying over required binaries and other files to the FAT16 disk image.  
+
 To build the entire project with the kernel and userspace binaries, navigate to the root of this project
 ```
 make all
+```
+For a release build, set the `DEBUG` make variable to 0
+```
+make all DEBUG=0
 ```
 To mount and unmount the FAT16 disk image, you can use the mount and unmount targets as below
 ```
