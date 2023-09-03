@@ -35,6 +35,7 @@ struct KeyBuffer
 #define ASCII_CTRL_Z 26
 
 char read_key_buffer(void);
-void capture_key(void);
+int capture_key(void);
+void notify_process(void);
 
 #endif

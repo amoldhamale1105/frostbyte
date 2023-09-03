@@ -89,7 +89,7 @@ int main(int argc, char** argv)
             return 1;
         }
         else{
-            if (to_lower(argv[2][0]) == 'f' || to_lower(argv[2][0]) == 'b'){
+            if (to_lower(argv[1][0]) == 'f' || to_lower(argv[1][0]) == 'b'){
                 req_js = getdefjob();
                 if (req_js < 0){
                     printf("sh: %cg: current: no such job\n", to_lower(argv[1][0]));

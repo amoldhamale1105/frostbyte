@@ -51,12 +51,13 @@ char read_key_buffer(void)
     return ch;
 }
 
-void capture_key(void)
+int capture_key(void)
 {
+    int buf_ready = 0;
     /* stdin should only work for current foreground process */
     struct Process* fg_proc = get_fg_process();
     if (fg_proc == NULL)
-        return;
+        return 0;
     /* Capture the pressed key from uart module and check for special characters */
     char key = read_char();
     switch (key)
@@ -73,12 +74,18 @@ void capture_key(void)
             if (key == '\r')
                 key = '\n';
             write_char(key);
-            return;
+            break;
         }
         /* Push the key to circular buffer */
         write_key_buffer(key);
-        /* Wake up all processes sleeping on keyboard input event */
-        wake_up(KEYBOARD_INPUT);
+        buf_ready = 1;
         break;
     }
+
+    return buf_ready;
+}
+
+void notify_process(void)
+{
+    wake_up(KEYBOARD_INPUT);
 }
