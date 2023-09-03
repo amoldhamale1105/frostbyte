@@ -57,6 +57,7 @@ static struct Process* alloc_new_process(void)
     memset((void*)process->stack, 0, STACK_SIZE);
 
     process->state = INIT;
+    process->event = NONE;
     process->status = 0;
     process->signals = 0;
     process->wpid = 0;
@@ -242,6 +243,53 @@ struct Process *get_process(int pid)
         }
     }
     return process;
+}
+
+struct Process* find_job(int job_spec, int ppid)
+{
+    struct Process* process = NULL;
+    if (job_spec <= 0)
+        return NULL;
+    
+    for(int i = 1; i < PROC_TABLE_SIZE; i++)
+    {
+        if (process_table[i].state != UNUSED && process_table[i].ppid == ppid && process_table[i].job_spec == job_spec){
+            process = &process_table[i];
+            break;
+        }
+    }
+    return process;
+}
+
+void move_to_fore(struct Process* process)
+{
+    if (process == NULL)
+        return;
+    
+    process->daemon = false;
+    /* Convert input event since the process is now moving to the foreground */
+    if (process->event == DAEMON_INPUT)
+        process->event = KEYBOARD_INPUT;
+    if (process->state != STOPPED){ /* Stopped processes won't resume without a continue signal */
+        if (process->state == SLEEP){
+            remove(&pc.wait_list, (struct Node*)process);
+            process->state = READY;
+        }
+        pc.fg_process = process;
+        if (!contains(&pc.ready_que, (struct Node*)process))
+            push_back(&pc.ready_que, (struct Node*)process);
+    }
+}
+
+void move_to_back(struct Process* process)
+{
+    if (process == NULL || process->state != STOPPED)
+        return;
+    
+    process->daemon = true;
+    /* Convert the input event to suit a background process */
+    if (process->event == KEYBOARD_INPUT || process->event == FG_PAUSED)
+        process->event = DAEMON_INPUT;
 }
 
 int get_status(int pid)

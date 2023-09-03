@@ -100,7 +100,7 @@ static int64_t sys_keyboard_read(int64_t* argv)
     /* If the process waiting for keyboard input is not a foreground process, put it to sleep */
     if (curr_process->daemon)
         sleep(DAEMON_INPUT);
-    else{
+    if (!curr_process->daemon){
         while (curr_process->pid != get_fg_process()->pid)
         {
             sleep(FG_PAUSED);
@@ -112,6 +112,12 @@ static int64_t sys_keyboard_read(int64_t* argv)
 static int64_t sys_get_pid(int64_t* argv)
 {
     return get_curr_process()->pid;
+}
+
+static int64_t sys_get_jpid(int64_t* argv)
+{
+    struct Process* process = find_job(argv[0], get_curr_process()->ppid);
+    return process ? process->pid : -1;
 }
 
 static int64_t sys_read_root_dir(int64_t* argv)
@@ -142,6 +148,19 @@ static int64_t sys_pstatus(int64_t* argv)
 static int64_t sys_proc_data(int64_t* argv)
 {
     return get_proc_data(argv[0], (int*)argv[1], (int*)argv[2], (int*)argv[3], (char*)argv[4], (char*)argv[5]);
+}
+
+static int64_t sys_pctrl(int64_t* argv)
+{
+    struct Process* process = find_job(argv[0], get_curr_process()->ppid);
+    if (process){
+        if (argv[1] == 0)
+            move_to_fore(process);
+        else
+            move_to_back(process);
+        return 0;
+    }
+    return -1;
 }
 
 static int64_t sys_kill(int64_t* argv)
@@ -191,6 +210,8 @@ void init_system_call(void)
     syscall_list[16] = sys_kill;
     syscall_list[17] = sys_signal;
     syscall_list[18] = sys_pstatus;
+    syscall_list[19] = sys_pctrl;
+    syscall_list[20] = sys_get_jpid;
 }
 
 void system_call(struct ContextFrame *ctx)

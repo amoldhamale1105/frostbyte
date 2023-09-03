@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 
     if (age >= age_limit){
         if (country_code != OTHER)
-            printf("\nCongratulations Mx. %s, you're eligible to vote in your country. Select a canditate responsibly using your own judgement\n\n", name+sizeof(name)/2);
+            printf("\nCongratulations Mx. %s, you're eligible to vote in your country. Select a candidate responsibly using your own judgement\n\n", name+sizeof(name)/2);
         else
             printf("\n%s, we do not have the exact data for your country but you're most probably eligible to vote. Please confirm with your local legislation\n\n", name);
     }

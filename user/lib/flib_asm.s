@@ -76,11 +76,13 @@
 .global exec
 .global getchar
 .global getpid
+.global getjpid
 .global read_root_dir
 .global getppid
 .global get_active_procs
 .global get_pstatus
 .global get_proc_data
+.global setjobctl
 .global kill
 .global signal
 
@@ -366,6 +368,25 @@ getpid:
     svc #0
     ret
 
+getjpid:
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #8
+    str x0, [sp]
+    # Set the syscall index to 20 (get process ID of a job) in x8
+    mov x8, #20
+    # Load the arg count in x0
+    mov x0, #1
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #8
+    ret
+
 read_root_dir:
     # Allocate 8 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
@@ -452,6 +473,25 @@ get_proc_data:
 
     # Restore the stack
     add sp, sp, #48
+    ret
+
+setjobctl:
+    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
+    # Set the syscall index to 19 (set process control) in x8
+    mov x8, #19
+    # Load the arg count in x0
+    mov x0, #2
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #16
     ret
 
 kill:

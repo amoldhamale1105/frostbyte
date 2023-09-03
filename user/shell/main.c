@@ -86,6 +86,15 @@ int main(int argc, char** argv)
                 printf("%s: %s - Operation not permitted\n", argv[0], cmd_buf+cmd_pos);
                 continue;
             }
+            if (memcmp(cmd_buf+cmd_pos, "FG.BIN", 6) == 0 || memcmp(cmd_buf+cmd_pos, "BG.BIN", 6) == 0){
+                char jctl_cmd[] = "JOBCTL.BIN";
+                int jctl_len = strlen(jctl_cmd);
+                memcpy(cmd_buf+cmd_pos, jctl_cmd, jctl_len);
+                cmd_buf[cmd_pos+jctl_len] = 0;
+                if (!args[0])
+                    args[0] = echo_buf+cmd_pos;
+                args[1] = echo_buf+cmd_pos;
+            }
             int fd = open_file(cmd_buf+cmd_pos);
             if (fd < 0)
                 printf("%s: command not found\n", echo_buf+cmd_pos);
@@ -123,8 +132,9 @@ int main(int argc, char** argv)
                     }
                     else if (WIFSTOPPED(wstatus)){
                         int job_spec;
-                        get_proc_data(wpid, NULL, NULL, &job_spec, NULL, NULL);
-                        printf("^Z\n[%d]  Stopped\t%s\n", job_spec, echo_buf+cmd_pos);
+                        char procname[MAX_FILENAME_BYTES+1];
+                        get_proc_data(wpid, NULL, NULL, &job_spec, procname, NULL);
+                        printf("^Z\n[%d]  Stopped\t%s\n", job_spec, procname);
                     }
                 }
             }

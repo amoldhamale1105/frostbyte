@@ -68,10 +68,10 @@ void capture_key(void)
         kill(get_curr_process(), fg_proc->pid, SIGTSTP);
         break;
     default:
+        /* Push the key to circular buffer */
+        write_key_buffer(key);
+        /* Wake up all processes sleeping on keyboard input event */
+        wake_up(KEYBOARD_INPUT);
         break;
     }
-    /* Push the key to circular buffer */
-    write_key_buffer(key);
-    /* Wake up all processes sleeping on keyboard input event */
-    wake_up(KEYBOARD_INPUT);
 }

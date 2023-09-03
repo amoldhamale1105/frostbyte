@@ -114,5 +114,7 @@ int get_pstatus(void);
 int get_proc_data(int pid, int* ppid, int* state, int* job_spec, char* procname, char* procargs);
 int read_root_dir(void* buf);
 int get_active_procs(int* pid_list, int all);
+int setjobctl(int job_spec, int req);
+int getjpid(int job_spec);
 
 #endif

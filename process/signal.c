@@ -86,8 +86,11 @@ void def_handler_entry(int signal)
     case SIGINT:
     case SIGABRT:
     case SIGTERM: { /* Graceful termination where orphans are reassigned, parent informed and memory cleaned */
-        /* Remove the process from the ready queue */
-        remove(&pc->ready_que, (struct Node*)target_proc);
+        /* Remove the process from applicable active queue */
+        if (contains(&pc->ready_que, (struct Node*)target_proc))
+            remove(&pc->ready_que, (struct Node*)target_proc);
+        else if (contains(&pc->wait_list, (struct Node*)target_proc))
+            remove(&pc->wait_list, (struct Node*)target_proc);
         /* Invoke exit to do the rest */
         exit(target_proc, (1 << 8) | signal, true);
         break;
@@ -107,8 +110,11 @@ void def_handler_entry(int signal)
         if (target_proc->state == STOPPED)
             remove(&pc->suspended, (struct Node*)target_proc);
         else{
-            /* Remove the process from the ready queue */
-            remove(&pc->ready_que, (struct Node*)target_proc);
+            /* Remove the process from applicable active queue */
+            if (contains(&pc->ready_que, (struct Node*)target_proc))
+                remove(&pc->ready_que, (struct Node*)target_proc);
+            else if (contains(&pc->wait_list, (struct Node*)target_proc))
+                remove(&pc->wait_list, (struct Node*)target_proc);
             /* Yield the current foreground status if holding one, for other processes to claim */
             if (pc->fg_process != NULL){
                 if (target_proc->pid == pc->fg_process->pid)
@@ -137,8 +143,11 @@ void def_handler_entry(int signal)
             return;
         if (target_proc->state == STOPPED)
             return;
-        /* Remove the process from the ready queue */
-        remove(&pc->ready_que, (struct Node*)target_proc);
+        /* Remove the process from applicable active queue */
+        if (contains(&pc->ready_que, (struct Node*)target_proc))
+            remove(&pc->ready_que, (struct Node*)target_proc);
+        else if (contains(&pc->wait_list, (struct Node*)target_proc))
+            remove(&pc->wait_list, (struct Node*)target_proc);
         target_proc->status |= 0x7f;
         /* Inform the parent and create job */
         struct Process* parent = get_process(target_proc->ppid);
@@ -172,8 +181,26 @@ void def_handler_entry(int signal)
         /* Remove process from the suspended list and place it on ready queue if it is currently stopped */
         if (target_proc->state == STOPPED){
             remove(&pc->suspended, (struct Node*)target_proc);
-            target_proc->state = READY;
-            push_back(&pc->ready_que, (struct Node*)target_proc);
+            /* Restore the process' state based on the event field */
+            if (target_proc->event == NONE){
+                target_proc->state = READY;
+                push_back(&pc->ready_que, (struct Node*)target_proc);
+            }
+            else{
+                target_proc->state = SLEEP;
+                push_back(&pc->wait_list, (struct Node*)target_proc);
+            }
+            /* Pause the current foreground process if signal is being handled for a foreground process */
+            if (!target_proc->daemon){
+                if (pc->fg_process){
+                    pc->fg_process->state = SLEEP;
+                    pc->fg_process->event = FG_PAUSED;
+                    if (contains(&pc->ready_que, (struct Node*)pc->fg_process))
+                        remove(&pc->ready_que, (struct Node*)pc->fg_process);
+                    push_back(&pc->wait_list, (struct Node*)pc->fg_process);
+                }
+                pc->fg_process = target_proc;
+            }
             /* Clear previous stopped status and assign new status */
             target_proc->status &= ~0x7f;
             target_proc->status |= signal & 0x7f;
