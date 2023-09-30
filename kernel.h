@@ -22,13 +22,13 @@
 /* Invalidate any previous definitions if found */
 #ifdef offsetof
 #undef offsetof
-#define offsetof(TYPE, MEMBER) (uint64_t)(&(((TYPE*)(0))->MEMBER))
 #endif
+#define offsetof(TYPE, MEMBER) (uint64_t)(&(((TYPE*)(0))->MEMBER))
 
 #ifdef container_of
 #undef container_of
+#endif
 #define container_of(ptr, type, member) \
                 ((type *) ((char *)(ptr) - offsetof(type, member)))
-#endif
 
 #endif
