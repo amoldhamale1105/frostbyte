@@ -35,6 +35,7 @@ static struct Process* find_unused_slot(void)
     {
         if (process_table[i].state == UNUSED){
             process = process_table + i;
+            memset(process, 0, sizeof(struct Process));
             break;
         }
     }
@@ -55,13 +56,13 @@ static struct Process* alloc_new_process(void)
     process->stack = (uint64_t)kalloc();
     ASSERT(process->stack != 0);
     memset((void*)process->stack, 0, STACK_SIZE);
+    /* Set the bottom of the allocated kernel stack space for process environment */
+    process->env = process->stack;
+    /* Set the arguments base address following the environment and align to 8-byte boundary */
+    process->args = UPPER_BOUND(process->env + sizeof(struct Map), 8);
 
     process->state = INIT;
     process->event = NONE;
-    process->status = 0;
-    process->signals = 0;
-    process->wpid = 0;
-    process->jobs = process->job_spec = 0;
     /* Assign a PID and increment the global PID counter. Processes may share the same table slot but never the same PID number */
     process->pid = pid_num++;
     /* Get the context frame which is located at the top of the kernel stack */
@@ -313,12 +314,10 @@ int get_proc_data(int pid, int *ppid, int *state, int* job_spec, char *name, cha
                 *job_spec = process_table[i].job_spec;
             if (name != NULL)
                 memcpy(name, process_table[i].name, strlen(process_table[i].name));
-            /* Retrieve the program arguments from the bottom of allocated process kernel stack */
-            char* arg = (char*)process_table[i].stack;
-            /* Omit the first argument since we've already captured program name */
-            arg += (strlen(arg)+1);
+            /* Retrieve the program arguments from the args member */
+            char* arg = (char*)process_table[i].args;
             int arg_len;
-            while (*(arg+args_size) != 0)
+            for(int j = 0; j < process_table[i].argc; j++)
             {
                 arg_len = strlen(arg+args_size);
                 if (args_buf != NULL){
@@ -553,14 +552,11 @@ int wait(int pid, int* wstatus, int options)
                         wproc->fd_table[i]->inode = NULL;
                 }
             }
-            /* Mark process table slot free and reset fields which can potentially get carried over to another process using the same slot
-                We needn't clear the entire process table entry since a new process reusing the slot will overwrite other members */
+            /* Mark process table slot free so that a new process can utilize it */
             wproc->state = UNUSED;
-            wproc->daemon = false;
-            /* Return the wait status to the caller and then clear it */
+            /* Return the wait status to the caller */
             if (wstatus != NULL)
                 *wstatus = wproc->status;
-            wproc->status = 0;
             break;
         }
         if (options & WNOHANG)
@@ -606,6 +602,8 @@ int fork(void)
 
     /* Copy the context frame so that the child process also resumes at the point after the fork call */
     memcpy(process->reg_context, pc.curr_process->reg_context, sizeof(struct ContextFrame));
+    /* Transfer the parent environment to the child */
+    memcpy((void*)process->env, (void*)pc.curr_process->env, sizeof(struct Map));
     /* Initialize signal handlers for the child process */
     init_handlers(process);
     /* Set the return value for child process to 0 */
@@ -627,14 +625,13 @@ int exec(struct Process* process, char* name, const char* args[])
         return -1;
 
     /* Get the size and count of passed arguments for the new program */
-    int arg_count = 0;
     int arg_size = 0;
     if (args != NULL){
         int new_arg_size;
-        while (args[arg_count] != NULL)
+        while (args[process->argc] != NULL)
         {
-            new_arg_size = strlen(args[arg_count]);
-            if (new_arg_size == 1 && args[arg_count][0] == '&'){
+            new_arg_size = strlen(args[process->argc]);
+            if (new_arg_size == 1 && args[process->argc][0] == '&'){
                 struct Process* parent = get_process(process->ppid);
                 if (parent != NULL && parent->state != KILLED){
                     parent->jobs++;
@@ -649,31 +646,23 @@ int exec(struct Process* process, char* name, const char* args[])
                 break;
             }
             arg_size += (new_arg_size+1);
-            arg_count++;
+            process->argc++;
         }
     }
-    arg_size += (strlen(name)+1);
-
-    /* Use the bottom of the allocated stack space for saving programs args instead of current stack pointer address
-       This is done to avoid overwriting kernel stack at stack pointer location which contains parent call stack */
-    char* arg_val_ks = (char*)process->stack;
-    
-    /* Copy the program name and args to process kernel stack */
-    int arg_len[arg_count+1];
-    arg_len[0] = strlen(name);
-    memcpy(arg_val_ks, name, arg_len[0]);
-    arg_val_ks[arg_len[0]] = 0;
-    arg_val_ks += (arg_len[0]+1);
-    for(int i = 0; i < arg_count; i++)
+    /* Copy the program arguments to process kernel stack */
+    char* arg_val_ks = (char*)process->args;
+    int arg_len[process->argc];
+    for(int i = 0; i < process->argc; i++)
     {
-        arg_len[i+1] = strlen(args[i]);
-        memcpy(arg_val_ks, (char*)args[i], arg_len[i+1]);
-        arg_val_ks[arg_len[i+1]] = 0;
-        arg_val_ks += (arg_len[i+1]+1);
+        arg_len[i] = strlen(args[i]);
+        memcpy(arg_val_ks, (char*)args[i], arg_len[i]);
+        arg_val_ks[arg_len[i]] = 0;
+        arg_val_ks += (arg_len[i]+1);
     }
     /* Set new name in the process table entry. NOTE Parent process ID would remain the same */
+    int namelen = strlen(name);
     memset(process->name, 0, sizeof(process->name));
-    memcpy(process->name, name, strlen(name)-(MAX_EXTNAME_BYTES+1));
+    memcpy(process->name, name, namelen-(MAX_EXTNAME_BYTES+1));
     /* In exec call, the regions of the current process are overwritten with the regions of the new process and PID remains the same.
        Hence there's no need to allocate new memory for the new program */
     memset((void*)USERSPACE_BASE, 0, PAGE_SIZE);
@@ -698,22 +687,22 @@ int exec(struct Process* process, char* name, const char* args[])
     process->reg_context->spsr = 0;
     /* Save arg count in x2 since x0 will be overwritten by the syscall return value when this function returns
        Before calling main, userspace programs can move this value to x0 to be identified as first arg to main */
-    process->reg_context->x2 = arg_count+1;
+    process->reg_context->x2 = process->argc+1;
     /* Make room for program arg pointers and content on the userspace stack */
-    process->reg_context->sp0 -= (arg_count+1)*8;
+    process->reg_context->sp0 -= (process->argc+1)*8;
     int64_t* arg_ptr = (int64_t*)process->reg_context->sp0;
-    process->reg_context->sp0 -= UPPER_BOUND(arg_size, 8);
+    process->reg_context->sp0 -= UPPER_BOUND(arg_size+namelen+1, 8);
 
     /* Copy program arguments from the kernel stack to the user stack for the process to access */
     char* arg_val = (char*)process->reg_context->sp0;
-    arg_val_ks = (char*)process->stack;
+    arg_val_ks = (char*)process->args;
 
-    memcpy(arg_val, arg_val_ks, arg_len[0]);
+    memcpy(arg_val, process->name, namelen-(MAX_EXTNAME_BYTES+1));
+    memcpy(arg_val+namelen-(MAX_EXTNAME_BYTES+1), ".BIN", MAX_EXTNAME_BYTES+2);
     *arg_ptr = (int64_t)arg_val;
     arg_ptr++;
-    arg_val += (arg_len[0]+1);
-    arg_val_ks += (arg_len[0]+1);
-    for(int i = 1; i <= arg_count; i++)
+    arg_val += (namelen+1);
+    for(int i = 0; i < process->argc; i++)
     {
         memcpy(arg_val, arg_val_ks, arg_len[i]);
         *arg_ptr = (int64_t)arg_val;
@@ -723,7 +712,7 @@ int exec(struct Process* process, char* name, const char* args[])
     }
 
     /* Save the argument addresses location on the stack to x1 to be used as second argument to main */
-    process->reg_context->x1 = (int64_t)arg_ptr - (arg_count+1)*8;
+    process->reg_context->x1 = (int64_t)arg_ptr - (process->argc+1)*8;
 
     return 0;
 }

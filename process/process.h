@@ -28,6 +28,8 @@ struct Process
 {
     struct Node* next; /* Member needed for the scheduler to maintain a linked list of processes */
     char name[MAX_FILENAME_BYTES+1];
+    uint64_t args;
+    uint32_t argc;
     int pid;
     int ppid;
     int wpid; /* PID a process is waiting on */
@@ -37,6 +39,7 @@ struct Process
     int jobs; /* Jobs created as a parent */
     int job_spec; /* Job specification as a child */
     int event; /* Event a process is waiting on */
+    uint64_t env; /* Process environment */
     uint64_t sp; /* Process kernel stack pointer */
     uint64_t page_map;
     uint64_t stack; /* Process kernel stack address */
