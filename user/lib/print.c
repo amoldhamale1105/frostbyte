@@ -43,8 +43,7 @@ int printf(const char *fmt, ...)
     va_start(ap, fmt);
     for(p = fmt, pos = 0; *p; p++)
     {
-        if (*p != '%')
-        {
+        if (*p != '%'){
             if (pos == PRINT_BATCH_BUF_SIZE-1){
                 count += flush_uart(buf, pos);
                 pos = 0;
@@ -83,7 +82,7 @@ int printf(const char *fmt, ...)
             break;
         }
 
-        if (fmt_spec_str != NULL){
+        if (fmt_spec_str != NULL && *fmt_spec_str != 0){
             do
             {
                 if (pos == PRINT_BATCH_BUF_SIZE-1){
@@ -93,13 +92,8 @@ int printf(const char *fmt, ...)
                 buf[pos++] = *fmt_spec_str++;
             } while (*fmt_spec_str);
         }
-        else{
-            if (pos == PRINT_BATCH_BUF_SIZE-1){
-                count += flush_uart(buf, pos);
-                pos = 0;
-            }
-            buf[pos++] = *p;
-        }
+        else
+            continue;
     }
 
     if (pos > 0)

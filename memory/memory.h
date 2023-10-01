@@ -30,6 +30,7 @@ struct Page
 
 #define KERNEL_BASE     0xffff000000000000  /* Kernel base virtual address */
 #define USERSPACE_BASE  0x0000000000400000  /* Userspace base virtual address */
+#define USERSPACE_EXT   0x0000000000600000  /* Userspace extended virtual address base */
 
 #define TO_VIRT(physical_addr)  ((uint64_t)physical_addr + KERNEL_BASE)
 #define TO_PHY(virt_addr)       ((uint64_t)virt_addr - KERNEL_BASE)
@@ -62,7 +63,7 @@ void kfree(uint64_t addr);
 void init_mem(void);
 void free_uvm(uint64_t map);
 bool setup_uvm(struct Process* process, char* program_filename);
-bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size);
+bool copy_uvm(struct Process* process, uint64_t src_map);
 void switch_vm(uint64_t map);
 uint64_t read_gdt(void);
 

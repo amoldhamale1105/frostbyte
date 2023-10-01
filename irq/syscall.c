@@ -178,6 +178,34 @@ static int64_t sys_signal(int64_t* argv)
     return 0;
 }
 
+static int64_t sys_setenv(int64_t* argv)
+{
+    int namelen;
+    if ((char*)argv[0] == NULL)
+        return -1;
+    if ((char*)argv[1] != NULL){
+        if (strlen((char*)argv[1]) > MAX_VAL_LEN-1)
+            return -1;
+    }
+    namelen = strlen((char*)argv[0]);
+    if (!namelen || namelen > MAX_KEY_LEN-1)
+        return -1;
+    if (argv[2] != 0)
+        insert((struct Map*)get_curr_process()->env, (char*)argv[0], (char*)argv[1]);
+    return 0;
+}
+
+static int64_t sys_getenv(int64_t* argv)
+{
+    return (int64_t)at((struct Map*)get_curr_process()->env, (char*)argv[0]);
+}
+
+static int64_t sys_unsetenv(int64_t* argv)
+{
+    erase((struct Map*)get_curr_process()->env, (char*)argv[0]);
+    return 0;
+}
+
 static void sigproxy_restore(struct ContextFrame *ctx)
 {
     int64_t* sp0 = (int64_t*)ctx->sp0;
@@ -212,6 +240,9 @@ void init_system_call(void)
     syscall_list[18] = sys_pstatus;
     syscall_list[19] = sys_pctrl;
     syscall_list[20] = sys_get_jpid;
+    syscall_list[21] = sys_setenv;
+    syscall_list[22] = sys_getenv;
+    syscall_list[23] = sys_unsetenv;
 }
 
 void system_call(struct ContextFrame *ctx)

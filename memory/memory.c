@@ -206,9 +206,8 @@ static void free_tables(uint64_t map)
 /* Function to free user space memory */
 void free_uvm(uint64_t map)
 {
-    /* Since the entire userspace process is loaded within a single 2M page, we just need to free a single page
-       This will change if the kernel is equipped to manage process address space larger than unit page size */
     free_page(map, USERSPACE_BASE);
+    free_page(map, USERSPACE_EXT);
     free_tables(map);
 }
 
@@ -220,7 +219,6 @@ bool setup_uvm(struct Process* process, char* program_filename)
 
     if (proc_page != NULL){
         memset(proc_page, 0, PAGE_SIZE);
-
         /* If the page mapping succeeds, load the file into that memory */
         if (map_page(map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
             int fd = open_file(process, program_filename);
@@ -232,34 +230,36 @@ bool setup_uvm(struct Process* process, char* program_filename)
             close_file(process, fd);
             if (binary_size != bytes_read)
                 goto out;
+            /* Map extended page to userspace virtual address space */
+            if (!map_page(map, USERSPACE_EXT, TO_PHY(process->env), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED))
+                goto out;
+            /* Save the mapped userspace extended virtual address to process table. The TTBR0_EL1 register will take care of translation */
+            process->env = USERSPACE_EXT;
             return true;
         }
+        kfree((uint64_t)proc_page);
+        return false;
     }
 
 out:
-    kfree((uint64_t)proc_page);
     free_uvm(map);
     return false;
 }
 
-bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size)
+bool copy_uvm(struct Process* process, uint64_t src_map)
 {
-    bool status;
     uint64_t* mdt_table;
     int mdt_index;
     void* proc_page = kalloc();
 
     if (proc_page != NULL){
         memset(proc_page, 0, PAGE_SIZE);
-        if (map_page(dst_map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
+        if (map_page(process->page_map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
             /* Find the source page to copy contents to the dest page using the middle directory table
                Note that the UDT entry is nothing but address of the MDT table according to our paging setup */
             mdt_table = find_udt_entry(src_map, USERSPACE_BASE, 0, 0);
-            if (mdt_table == NULL){
-                status = false;
-                goto err;
-            }
-
+            if (mdt_table == NULL)
+                goto out;
             /* 9 bits starting from bit 21 in the virt address signify MDT table index */
             mdt_index = (USERSPACE_BASE >> 21) & 0x1ff;
             /* Check if the entry is valid. If not, it means that memory does not belong to current process */
@@ -268,21 +268,20 @@ bool copy_uvm(uint64_t dst_map, uint64_t src_map, int size)
             uint64_t src_mem = TO_VIRT(PAGE_TABLE_ENTRY_ADDR(mdt_table[mdt_index]));
             /* Copy the source to destination */
             memcpy(proc_page, (void*)src_mem, PAGE_SIZE);
-
-            status = true;
-            goto out;
+            /* Map extended page to userspace virtual address space */
+            if (!map_page(process->page_map, USERSPACE_EXT, TO_PHY(process->env), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED))
+                goto out;
+            /* Save the mapped userspace extended virtual address to process table. The TTBR0_EL1 register will take care of translation */
+            process->env = USERSPACE_EXT;
+            return true;
         }
-        else{
-            status = false;
-            goto err;
-        }
+        kfree((uint64_t)proc_page);
+        return false;
     }
 
-err:
-    kfree((uint64_t)proc_page);
-    free_uvm(dst_map);
 out:
-    return status;
+    free_uvm(process->page_map);
+    return false;
 }
 
 void switch_vm(uint64_t map)

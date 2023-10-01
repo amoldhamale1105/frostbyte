@@ -117,5 +117,8 @@ int read_root_dir(void* buf);
 int get_active_procs(int* pid_list, int all);
 int setjobctl(int job_spec, int req);
 int getjpid(int job_spec);
+int setenv(const char *name, const char *value, int overwrite);
+char *getenv(const char *name);
+int unsetenv(const char *name);
 
 #endif

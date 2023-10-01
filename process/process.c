@@ -52,14 +52,17 @@ static struct Process* alloc_new_process(void)
         return NULL;
 
     memset(process->name, 0, sizeof(process->name));
-    /* Allocate memory for the kernel stack. Each process will have its own kernel stack */
-    process->stack = (uint64_t)kalloc();
-    ASSERT(process->stack != 0);
-    memset((void*)process->stack, 0, STACK_SIZE);
-    /* Set the bottom of the allocated kernel stack space for process environment */
-    process->env = process->stack;
-    /* Set the arguments base address following the environment and align to 8-byte boundary */
-    process->args = UPPER_BOUND(process->env + sizeof(struct Map), 8);
+    /* Allocate memory for the process page table, kernel stack and heap */
+    process->page_map = (uint64_t)kalloc();
+    ASSERT(process->page_map != 0);
+    memset((void*)process->page_map, 0, PAGE_SIZE);
+    /* The kernel stack will reside at the top of the allocated page. Heap starts after the stack */
+    process->stack = (uint64_t)(process->page_map + PAGE_SIZE - STACK_SIZE);
+    process->heap = (uint64_t)(process->page_map + PAGE_SIZE - STACK_SIZE - HEAP_SIZE);
+    /* Allocate extended memory for holding the process environment, heap and shared memory */
+    process->env = (uint64_t)kalloc();
+    ASSERT(process->env != 0);
+    memset((void*)process->env, 0, PAGE_SIZE);
 
     process->state = INIT;
     process->event = NONE;
@@ -81,10 +84,6 @@ static struct Process* alloc_new_process(void)
     process->reg_context->sp0 = USERSPACE_BASE + PAGE_SIZE;
     /* Set pstate mode field to 0 (EL0) and DAIF bits to 0 which means no masking of interrupts i.e. interrupts enabled */
     process->reg_context->spsr = 0;
-    /* Allocate memory for page map which stores GDT (global directory table) for userspace */
-    process->page_map = (uint64_t)kalloc();
-    ASSERT(process->page_map != 0);
-    memset((void*)process->page_map, 0, PAGE_SIZE);
 
     return process;
 }
@@ -538,7 +537,6 @@ int wait(int pid, int* wstatus, int options)
             /* There's a chance some process or handler already cleaned up this zombie */
             if (wproc->state != KILLED)
                 break;
-            kfree(wproc->stack);
             free_uvm(wproc->page_map);
             /* Decrement ref counts of all files left open by the zombie */
             for(int i = 0; i < MAX_OPEN_FILES; i++)
@@ -584,9 +582,8 @@ int fork(void)
         if (pc.curr_process->pid == pc.fg_process->pid)
             pc.fg_process = NULL;
     }
-    /* Copy the text, data, stack and other regions of the parent to the child process' memory
-       We copy only one page because the current design of the kernel holds all process regions in a single page */
-    if (!copy_uvm(process->page_map, pc.curr_process->page_map, PAGE_SIZE))
+    /* Copy the text, data, stack and other regions of the parent to the child process' memory */
+    if (!copy_uvm(process, pc.curr_process->page_map))
         return -1;
 
     /* Replicate the parent file descriptor table for the child since it shares all open files with the parent 
@@ -649,15 +646,16 @@ int exec(struct Process* process, char* name, const char* args[])
             process->argc++;
         }
     }
-    /* Copy the program arguments to process kernel stack */
-    char* arg_val_ks = (char*)process->args;
+    /* Copy the program arguments to the kernel heap */
+    process->args = process->heap;
+    char* arg_val_kh = (char*)process->args;
     int arg_len[process->argc];
     for(int i = 0; i < process->argc; i++)
     {
         arg_len[i] = strlen(args[i]);
-        memcpy(arg_val_ks, (char*)args[i], arg_len[i]);
-        arg_val_ks[arg_len[i]] = 0;
-        arg_val_ks += (arg_len[i]+1);
+        memcpy(arg_val_kh, (char*)args[i], arg_len[i]);
+        arg_val_kh[arg_len[i]] = 0;
+        arg_val_kh += (arg_len[i]+1);
     }
     /* Set new name in the process table entry. NOTE Parent process ID would remain the same */
     int namelen = strlen(name);
@@ -695,7 +693,7 @@ int exec(struct Process* process, char* name, const char* args[])
 
     /* Copy program arguments from the kernel stack to the user stack for the process to access */
     char* arg_val = (char*)process->reg_context->sp0;
-    arg_val_ks = (char*)process->args;
+    arg_val_kh = (char*)process->args;
 
     memcpy(arg_val, process->name, namelen-(MAX_EXTNAME_BYTES+1));
     memcpy(arg_val+namelen-(MAX_EXTNAME_BYTES+1), ".BIN", MAX_EXTNAME_BYTES+2);
@@ -704,11 +702,11 @@ int exec(struct Process* process, char* name, const char* args[])
     arg_val += (namelen+1);
     for(int i = 0; i < process->argc; i++)
     {
-        memcpy(arg_val, arg_val_ks, arg_len[i]);
+        memcpy(arg_val, arg_val_kh, arg_len[i]);
         *arg_ptr = (int64_t)arg_val;
         arg_ptr++;
         arg_val += (arg_len[i]+1);
-        arg_val_ks += (arg_len[i]+1);
+        arg_val_kh += (arg_len[i]+1);
     }
 
     /* Save the argument addresses location on the stack to x1 to be used as second argument to main */
@@ -743,7 +741,6 @@ int kill(struct Process* process, int pid, int signal)
             }
             else if (process_table[i].state == KILLED && signal == SIGHUP){
                 if (process_table[i].ppid != 1){ /* Release rogue or unattended zombie not owned by init */
-                    kfree(process_table[i].stack);
                     free_uvm(process_table[i].page_map);
                     /* Decrement ref counts of all files left open by the zombie */
                     for(int i = 0; i < MAX_OPEN_FILES; i++)

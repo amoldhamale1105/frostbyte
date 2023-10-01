@@ -158,6 +158,90 @@ struct Node *find_evt(const struct Node *head, int event)
     return (struct Node*)node;
 }
 
+size_t hash(const char *str)
+{
+    const int prime1 = 54059;
+    const int prime2 = 76963;
+    size_t str_hash = 37;
+
+    while (*str)
+    {
+        str_hash = (str_hash * prime1) ^ (str[0] * prime2);
+        str++;
+    }
+    
+    return str_hash;
+}
+
+void insert(struct Map *map, const char *key, const char *value)
+{
+    size_t key_hash = hash(key);
+    /* Check if given key already exists */
+    char* curr_value = at(map, key);
+    if (curr_value){
+        memset(curr_value, 0, MAX_VAL_LEN);
+        memcpy(curr_value, (char*)value, strlen(value));
+    }
+    else{
+        for(int i = 0; i < HASH_TABLE_SIZE; i++)
+        {
+            if (map->table[i].key_hash == 0){
+                memset(map->table[i].key, 0, MAX_KEY_LEN);
+                memset(map->table[i].value, 0, MAX_VAL_LEN);
+                memcpy(map->table[i].key, (char*)key, strlen(key));
+                memcpy(map->table[i].value, (char*)value, strlen(value));
+                map->table[i].key_hash = key_hash;
+                break;
+            }
+        }
+    }
+}
+
+void erase(struct Map *map, const char *key)
+{
+    size_t key_hash = hash(key);
+    //printk("%s key's hash: %u\n", key, key_hash);
+    for(int i = 0; i < HASH_TABLE_SIZE; i++)
+    {
+        //printk("curr hash(%d): %u\n", i, map->table[i].key_hash);
+        if (key_hash == map->table[i].key_hash){
+            //printk("setting hash for %s to 0\n", map->table[i].key);
+            map->table[i].key_hash = 0;
+            break;
+        }
+    }
+}
+
+char *at(const struct Map *map, const char *key)
+{
+    if (!key || !strlen(key))
+        return NULL;
+    size_t key_hash = hash(key);
+    //printk("at: %s key's hash: %u\n", key, key_hash);
+    for(int i = 0; i < HASH_TABLE_SIZE; i++)
+    {
+        //printk("at: curr hash(%d): %u\n", i, map->table[i].key_hash);
+        if (key_hash == map->table[i].key_hash){
+            //printk("at: match %u found for key %s\n", map->table[i].key_hash, key);
+            return (char*)map->table[i].value;
+        }
+    }
+    return NULL;
+}
+
+int keys(const struct Map *map, char** key_list)
+{
+    int key_count = 0;
+    if (key_list){
+        for(int i = 0; i < HASH_TABLE_SIZE; i++)
+        {
+            if (map->table[i].key_hash != 0)
+                key_list[key_count++] = (char*)map->table[i].key;
+        }
+    }
+    return key_count;
+}
+
 struct Node *find(const struct Node *head, const struct Node *node)
 {
     const struct Node* curr_node = head;

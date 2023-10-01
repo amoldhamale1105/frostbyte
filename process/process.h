@@ -43,6 +43,7 @@ struct Process
     uint64_t sp; /* Process kernel stack pointer */
     uint64_t page_map;
     uint64_t stack; /* Process kernel stack address */
+    uint64_t heap; /* Process kernel heap address */
     uint32_t signals; /* Pending signals bit map */
     struct FileEntry* fd_table[100]; /* A user file desc table which contains pointers to global file table entries */
     struct ContextFrame* reg_context;
@@ -59,7 +60,8 @@ struct ProcessControl
     struct List zombies; /* Processes that have exited and awaiting resource cleanup */
 };
 
-#define STACK_SIZE PAGE_SIZE
+#define STACK_SIZE 0x80000 /* 512K */
+#define HEAP_SIZE 0x100000 /* 1M */
 #define PROC_TABLE_SIZE 100
 #define USERSPACE_CONTEXT_SIZE (12*8) /* 12 GPRs saved on the stack when context switch done by scheduler (see swap function) */
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */

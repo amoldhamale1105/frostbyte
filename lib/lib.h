@@ -21,6 +21,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+
+#define MAX_KEY_LEN 64
+#define MAX_VAL_LEN 128
+#define HASH_TABLE_SIZE 101
 
 struct Node
 {
@@ -31,6 +36,18 @@ struct List
 {
     struct Node* head;
     struct Node* tail;
+};
+
+struct MapEntry
+{
+    char key[MAX_KEY_LEN];
+    char value[MAX_VAL_LEN];
+    size_t key_hash;
+};
+
+struct Map
+{
+    struct MapEntry table[HASH_TABLE_SIZE];
 };
 
 unsigned char get_el(void);
@@ -56,10 +73,16 @@ void print_list(const struct List* list, const char* name);
 #endif
 
 /* Special functions for managing the process queues based on event occurence */
-
 struct Node* remove_evt(struct List* list, struct Node** head_prev, int event);
 struct Node* find_evt(const struct Node* head, int event);
 
+/* Map functions */
+void insert(struct Map* map, const char* key, const char* value);
+void erase(struct Map* map, const char* key);
+char* at(const struct Map* map, const char* key);
+int keys(const struct Map* map, char** key_list);
+
 int strlen(const char* str);
+size_t hash(const char* str);
 
 #endif

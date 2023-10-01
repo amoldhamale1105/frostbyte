@@ -85,6 +85,9 @@
 .global setjobctl
 .global kill
 .global signal
+.global setenv
+.global getenv
+.global unsetenv
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -553,4 +556,64 @@ sighandler_proxy:
     # Operating system trap
     svc #0
     # We should never reach here. The process should resume execution at the point where it was previously interrupted
+    ret
+
+setenv:
+    # Allocate 24 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #24
+    stp x0, x1, [sp]
+    str x2, [sp, #16]
+    # Set the syscall index to 21 (set env var) in x8
+    mov x8, #21
+    # Load the arg count in x0
+    mov x0, #3
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #24
+    ret
+
+getenv:
+    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
+    str x2, [sp, #16]
+    # Set the syscall index to 22 (get env var) in x8
+    mov x8, #22
+    # Load the arg count in x0
+    mov x0, #3
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #16
+    ret
+
+unsetenv:
+    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #16
+    stp x0, x1, [sp]
+    str x2, [sp, #16]
+    # Set the syscall index to 23 (unset env var) in x8
+    mov x8, #23
+    # Load the arg count in x0
+    mov x0, #3
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #16
     ret
