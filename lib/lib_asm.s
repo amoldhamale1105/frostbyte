@@ -90,10 +90,6 @@ memcpy:
     beq memcpy_end
     # Temp value used to determine direction of traversal while copying data
     mov x4, #1
-
-    cmp x1, x0
-    # If x1 is greater than or equal to x0
-    bhs copy
     # x3 = base address in x1 + size
     add x3, x1, x2
     cmp x3, x0
