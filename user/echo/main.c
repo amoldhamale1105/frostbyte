@@ -22,6 +22,7 @@
 int main(int argc, char** argv)
 {
     if (argc > 1){
+        switchpenv();
         /* Start from the second argument since the first one is program name */
         for(int i = 1; i < argc; i++)
         {
@@ -51,9 +52,9 @@ int main(int argc, char** argv)
                                 env_len++;
                             }
                             char env_var[env_len+1];
-                            memcpy(env_var, (char*)argv+i+j+1, env_len);
+                            memcpy((char*)env_var, &argv[i][j+1], env_len);
                             env_var[env_len] = 0;
-                            /* Evaluate and print environment variable here */
+                            printf("%s", getenv(env_var));
                             j += env_len;
                             continue;
                         }

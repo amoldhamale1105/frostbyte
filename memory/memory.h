@@ -34,6 +34,12 @@ struct Page
 
 #define TO_VIRT(physical_addr)  ((uint64_t)physical_addr + KERNEL_BASE)
 #define TO_PHY(virt_addr)       ((uint64_t)virt_addr - KERNEL_BASE)
+#define TO_USER_VIRT(user_virt_base, kern_virt_base, kern_virt_addr) ({ \
+                uint64_t user_virt_addr = 0; \
+                if ((uint64_t)kern_virt_addr != 0) \
+                    user_virt_addr = ((uint64_t)user_virt_base + ((uint64_t)(kern_virt_addr) - (uint64_t)(kern_virt_base))); \
+                user_virt_addr; \
+})
 
 #define MEMORY_END          TO_VIRT(0X30000000)
 #define PAGE_SIZE           0x200000 // 2M (2*1024*1024)

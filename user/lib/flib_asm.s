@@ -88,6 +88,8 @@
 .global setenv
 .global getenv
 .global unsetenv
+.global getfullenv
+.global switchpenv
 
 memset:
     # x0 => dst x1 => value x2 => size
@@ -584,7 +586,6 @@ getenv:
     # We need the registers for other purposes hence saving the arg on the stack beforehand
     sub sp, sp, #16
     stp x0, x1, [sp]
-    str x2, [sp, #16]
     # Set the syscall index to 22 (get env var) in x8
     mov x8, #22
     # Load the arg count in x0
@@ -604,7 +605,6 @@ unsetenv:
     # We need the registers for other purposes hence saving the arg on the stack beforehand
     sub sp, sp, #16
     stp x0, x1, [sp]
-    str x2, [sp, #16]
     # Set the syscall index to 23 (unset env var) in x8
     mov x8, #23
     # Load the arg count in x0
@@ -616,4 +616,33 @@ unsetenv:
 
     # Restore the stack
     add sp, sp, #16
+    ret
+
+getfullenv:
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
+    # Note that in aarch64, args to functions are loaded in GPRs not the stack
+    # We need the registers for other purposes hence saving the arg on the stack beforehand
+    sub sp, sp, #8
+    str x0, [sp]
+    # Set the syscall index to 24 (get full environment) in x8
+    mov x8, #24
+    # Load the arg count in x0
+    mov x0, #1
+    # Load x1 with the pointer to the arguments i.e. the current stack pointer
+    mov x1, sp
+    # Operating system trap
+    svc #0
+
+    # Restore the stack
+    add sp, sp, #8
+    ret
+
+switchpenv:
+    # No arguments to this syscall hence no stack space required
+    # Set the syscall index to 25 (switch to parent env) in x8
+    mov x8, #25
+    # Load the arg count in x0
+    mov x0, #0
+    # Operating system trap
+    svc #0
     ret

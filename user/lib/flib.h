@@ -120,5 +120,7 @@ int getjpid(int job_spec);
 int setenv(const char *name, const char *value, int overwrite);
 char *getenv(const char *name);
 int unsetenv(const char *name);
+int getfullenv(char** list);
+void switchpenv(void);
 
 #endif

@@ -32,24 +32,15 @@ void sighandler(int signum)
 
 int main(int argc, char** argv)
 {
-    char username[100] = {0};
-    char prompt_suffix = '$';
     char cmd_buf[MAX_CMD_BUF_SIZE];
     char echo_buf[MAX_CMD_BUF_SIZE];
     int cmd_size = 0;
     int wstatus;
-    /* Default username in case shell is invoked without the '-u' option */
-    memcpy(username, "user", 4);
 
-    if (argc > 1){
-        if (strlen(argv[1]) == 2 && memcmp("-u", argv[1], 2) == 0){
-            int namelen = strlen(argv[2]);
-            memcpy(username, argv[2], namelen);
-            username[namelen] = 0;
-            if (namelen == 4 && memcmp(username, "root", namelen) == 0)
-                prompt_suffix = '#';
-        }
-    }
+    char prompt_suffix = '$';
+    char* username = getenv("USER");
+    if (username && strlen(username) == 4 && memcmp(username, "root", 4) == 0)
+        prompt_suffix = '#';
 
     /* Register custom handler for keyboard interrupt so that the shell does not get terminated on Ctrl+C from user */
     signal(SIGINT, sighandler);

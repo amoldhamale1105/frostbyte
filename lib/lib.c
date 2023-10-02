@@ -200,12 +200,9 @@ void insert(struct Map *map, const char *key, const char *value)
 void erase(struct Map *map, const char *key)
 {
     size_t key_hash = hash(key);
-    //printk("%s key's hash: %u\n", key, key_hash);
     for(int i = 0; i < HASH_TABLE_SIZE; i++)
     {
-        //printk("curr hash(%d): %u\n", i, map->table[i].key_hash);
         if (key_hash == map->table[i].key_hash){
-            //printk("setting hash for %s to 0\n", map->table[i].key);
             map->table[i].key_hash = 0;
             break;
         }
@@ -217,14 +214,10 @@ char *at(const struct Map *map, const char *key)
     if (!key || !strlen(key))
         return NULL;
     size_t key_hash = hash(key);
-    //printk("at: %s key's hash: %u\n", key, key_hash);
     for(int i = 0; i < HASH_TABLE_SIZE; i++)
     {
-        //printk("at: curr hash(%d): %u\n", i, map->table[i].key_hash);
-        if (key_hash == map->table[i].key_hash){
-            //printk("at: match %u found for key %s\n", map->table[i].key_hash, key);
+        if (key_hash == map->table[i].key_hash)
             return (char*)map->table[i].value;
-        }
     }
     return NULL;
 }
@@ -232,11 +225,12 @@ char *at(const struct Map *map, const char *key)
 int keys(const struct Map *map, char** key_list)
 {
     int key_count = 0;
-    if (key_list){
-        for(int i = 0; i < HASH_TABLE_SIZE; i++)
-        {
-            if (map->table[i].key_hash != 0)
-                key_list[key_count++] = (char*)map->table[i].key;
+    for(int i = 0; i < HASH_TABLE_SIZE; i++)
+    {
+        if (map->table[i].key_hash != 0){
+            if (key_list)
+                key_list[key_count] = (char*)map->table[i].key;
+            key_count++;
         }
     }
     return key_count;

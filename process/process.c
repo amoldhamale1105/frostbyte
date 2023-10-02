@@ -691,7 +691,7 @@ int exec(struct Process* process, char* name, const char* args[])
     int64_t* arg_ptr = (int64_t*)process->reg_context->sp0;
     process->reg_context->sp0 -= UPPER_BOUND(arg_size+namelen+1, 8);
 
-    /* Copy program arguments from the kernel stack to the user stack for the process to access */
+    /* Copy program arguments from the kernel heap to user stack for the process to access */
     char* arg_val = (char*)process->reg_context->sp0;
     arg_val_kh = (char*)process->args;
 

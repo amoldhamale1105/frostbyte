@@ -24,7 +24,6 @@ int main(int argc, char** argv)
 {
     char username[MAX_USERNAME_SIZE] = {0};
     char password[MAX_PASSWD_SIZE] = {0};
-    const char* shell_args[] = { "-u", username, NULL };
     int attempts = MAX_LOGIN_ATTEMPTS;
     
     /* Ignore keyboard interrupts during login */
@@ -76,8 +75,10 @@ int main(int argc, char** argv)
                 {
                     passlen++;
                 }
-                if (passlen == 1 && *pbuf == 'x')
-                    exec("SH.BIN", shell_args);
+                if (passlen == 1 && *pbuf == 'x'){
+                    setenv("USER", username, 1);
+                    exec("SH.BIN", NULL);
+                }
                 printf("Password: ");
                 int passwd_size = read_passwd(password);
                 if ((passwd_size != passlen) || memcmp(pbuf, password, passlen) != 0){
@@ -89,7 +90,8 @@ int main(int argc, char** argv)
                     break;
                 }
                 printf("\n\n");
-                exec("SH.BIN", shell_args);
+                setenv("USER", username, 1);
+                exec("SH.BIN", NULL);
             }
             
             nloff = getline(pbuf);

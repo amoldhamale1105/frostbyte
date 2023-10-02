@@ -190,19 +190,56 @@ static int64_t sys_setenv(int64_t* argv)
     namelen = strlen((char*)argv[0]);
     if (!namelen || namelen > MAX_KEY_LEN-1)
         return -1;
+    struct Process* process = get_curr_process();
+    if (process->env == 0){
+        process = get_process(process->ppid);
+        if (!process->env)
+            return -1;
+    }
     if (argv[2] != 0)
-        insert((struct Map*)get_curr_process()->env, (char*)argv[0], (char*)argv[1]);
+        insert((struct Map*)process->env, (char*)argv[0], (char*)argv[1]);
     return 0;
 }
 
 static int64_t sys_getenv(int64_t* argv)
 {
-    return (int64_t)at((struct Map*)get_curr_process()->env, (char*)argv[0]);
+    struct Process* process = get_curr_process();
+    if (process->env == 0){
+        process = get_process(process->ppid);
+        if (!process->env)
+            return 0;
+    }
+    return TO_USER_VIRT(USERSPACE_EXT, process->env, at((struct Map*)process->env, (char*)argv[0]));
+}
+
+static int64_t sys_getfullenv(int64_t* argv)
+{
+    struct Process* process = get_curr_process();
+    if (process->env == 0){
+        process = get_process(process->ppid);
+        if (!process->env)
+            return -1;
+    }
+    return keys((struct Map*)process->env, (char**)argv[0]);
 }
 
 static int64_t sys_unsetenv(int64_t* argv)
 {
-    erase((struct Map*)get_curr_process()->env, (char*)argv[0]);
+    struct Process* process = get_curr_process();
+    if (process->env == 0){
+        process = get_process(process->ppid);
+        if (!process->env)
+            return -1;
+    }
+    erase((struct Map*)process->env, (char*)argv[0]);
+    return 0;
+}
+
+static int64_t sys_switchpenv(int64_t* argv)
+{
+    /* Set the current process env member to NULL so that subsequent system calls use the parent environment */
+    /* NOTE This does not free the memory allocated for the process environment only points it to NULL */
+    get_curr_process()->env = 0;
     return 0;
 }
 
@@ -243,6 +280,8 @@ void init_system_call(void)
     syscall_list[21] = sys_setenv;
     syscall_list[22] = sys_getenv;
     syscall_list[23] = sys_unsetenv;
+    syscall_list[24] = sys_getfullenv;
+    syscall_list[25] = sys_switchpenv;
 }
 
 void system_call(struct ContextFrame *ctx)

@@ -271,8 +271,6 @@ bool copy_uvm(struct Process* process, uint64_t src_map)
             /* Map extended page to userspace virtual address space */
             if (!map_page(process->page_map, USERSPACE_EXT, TO_PHY(process->env), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED))
                 goto out;
-            /* Save the mapped userspace extended virtual address to process table. The TTBR0_EL1 register will take care of translation */
-            process->env = USERSPACE_EXT;
             return true;
         }
         kfree((uint64_t)proc_page);
