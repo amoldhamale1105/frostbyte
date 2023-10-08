@@ -23,7 +23,7 @@
 static void print_usage(void)
 {
     printf("Usage:");
-    printf("\tkill [OPTION] <pid>\n");
+    printf("\tkill [OPTION] pid\n");
     printf("\tSend a signal to a process\n\n");
     printf("\t-h\tdisplay this help and exit\n");
     printf("\t-sig\tsignal number (Refer to POSIX signals)\n");

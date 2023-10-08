@@ -86,6 +86,7 @@ int strlen(const char* str);
 char to_upper(char ch);
 char to_lower(char ch);
 void to_upper_str(char* str);
+int find(char ch, char* str);
 int atoi(char* str);
 uint32_t atoui(char* str);
 uint64_t atox(char* str);

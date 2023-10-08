@@ -23,7 +23,7 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 export MOUNT_POINT := $(PWD)/temp
 export KERNEL_NAME := frostbyte
-export KERNEL_VERSION := 2.2.0
+export KERNEL_VERSION := 2.3.0
 export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/lib_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
@@ -57,6 +57,7 @@ user:
 	cd ./user/jobs && $(MAKE)
 	cd ./user/jobctl && $(MAKE)
 	cd ./user/list && $(MAKE)
+	cd ./user/export && $(MAKE)
 	cd ./user/echo && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
@@ -75,6 +76,7 @@ user_clean:
 	cd ./user/jobs && $(MAKE) clean
 	cd ./user/jobctl && $(MAKE) clean
 	cd ./user/list && $(MAKE) clean
+	cd ./user/export && $(MAKE) clean
 	cd ./user/echo && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/kill && $(MAKE) clean

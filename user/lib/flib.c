@@ -53,6 +53,19 @@ void to_upper_str(char *str)
     }
 }
 
+int find(char ch, char *str)
+{
+    int index = -1;
+    for(int i = 0; *(str+i) != 0; i++)
+    {
+        if (str[i] == ch){
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
 int atoi(char *str)
 {
     bool neg = false;

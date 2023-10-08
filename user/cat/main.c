@@ -21,7 +21,7 @@
 static void print_usage(void)
 {
     printf("Usage:");
-    printf("\tcat [OPTION] <FILE>\n");
+    printf("\tcat [OPTION] FILE\n");
     printf("\tConcatenate FILE to standard output (shell)\n\n");
     printf("\t-h\tdisplay this help and exit\n");
 }
