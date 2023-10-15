@@ -51,13 +51,12 @@ char read_key_buffer(void)
     return ch;
 }
 
-int capture_key(void)
+void capture_key(void)
 {
-    int buf_ready = 0;
     /* stdin should only work for current foreground process */
     struct Process* fg_proc = get_fg_process();
     if (fg_proc == NULL)
-        return 0;
+        return;
     /* Capture the pressed key from uart module and check for special characters */
     char key = read_char();
     switch (key)
@@ -69,20 +68,17 @@ int capture_key(void)
         kill(get_curr_process(), fg_proc->pid, SIGTSTP);
         break;
     default:
-        /* Flush to stdout if foreground process not using key input to prevent residual characters in key buffer */
-        if (fg_proc->event != KEYBOARD_INPUT){
-            if (key == '\r')
-                key = '\n';
-            write_char(key);
-            break;
-        }
-        /* Push the key to circular buffer */
-        write_key_buffer(key);
-        buf_ready = 1;
         break;
     }
-
-    return buf_ready;
+    /* Flush to stdout if foreground process not using key input to prevent residual characters in key buffer */
+    if (fg_proc->event != KEYBOARD_INPUT){
+        if (key == '\r')
+            key = '\n';
+        write_char(key);
+        return;
+    }
+    /* Push the key to circular buffer */
+    write_key_buffer(key);
 }
 
 void notify_process(void)

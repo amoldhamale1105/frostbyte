@@ -90,10 +90,14 @@ memcpy:
     beq memcpy_end
     # Temp value used to determine direction of traversal while copying data
     mov x4, #1
+
+    cmp x1, x0
+    # If x1 is higher or same as x0, start copying from the first byte
+    bhs copy
     # x3 = base address in x1 + size
     add x3, x1, x2
     cmp x3, x0
-    # If x3 is less than or equal to x0 meaning src and dst addresses do NOT overlap
+    # If x3 is lower or same as x0 meaning src and dst addresses do NOT overlap
     bls copy
 
 overlap:

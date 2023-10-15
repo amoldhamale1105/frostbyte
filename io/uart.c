@@ -45,16 +45,14 @@ void uart_handler(void)
 {
     /* Check if it is a receiving UART interrupt by reading bit 4 of UART masked interrupt status register */
     uint32_t status = in_word(UART0_MIS);
-    int data_ready;
 
     if (status & (1 << 4)){
         /* Read all characters in the FIFO buffer until the RXFE (Receive FIFO empty) bit of flags register is set */
         while (!(in_word(UART0_FR) & (1 << 4)))
         {
-            data_ready = capture_key();
+            capture_key();
         }
-        if (data_ready)
-            notify_process();
+        notify_process();
         /* Clear the interrupt by setting bit 4 of the interrupt clear register */
         out_word(UART0_ICR, (1 << 4));
     }
