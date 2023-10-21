@@ -60,6 +60,7 @@ user:
 	cd ./user/env && $(MAKE)
 	cd ./user/export && $(MAKE)
 	cd ./user/echo && $(MAKE)
+	cd ./user/unset && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
 	cd ./user/uname && $(MAKE)
@@ -80,6 +81,7 @@ user_clean:
 	cd ./user/env && $(MAKE) clean
 	cd ./user/export && $(MAKE) clean
 	cd ./user/echo && $(MAKE) clean
+	cd ./user/unset && $(MAKE) clean
 	cd ./user/cat && $(MAKE) clean
 	cd ./user/kill && $(MAKE) clean
 	cd ./user/uname && $(MAKE) clean
