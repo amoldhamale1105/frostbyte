@@ -561,7 +561,7 @@ sighandler_proxy:
     ret
 
 setenv:
-    # Allocate 24 bytes on the stack to accomodate the argument to this function
+    # Allocate 24 bytes on the stack to accomodate the args to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
     sub sp, sp, #24
@@ -581,41 +581,41 @@ setenv:
     ret
 
 getenv:
-    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
-    sub sp, sp, #16
-    stp x0, x1, [sp]
+    sub sp, sp, #8
+    str x0, [sp]
     # Set the syscall index to 22 (get env var) in x8
     mov x8, #22
     # Load the arg count in x0
-    mov x0, #3
+    mov x0, #1
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
     mov x1, sp
     # Operating system trap
     svc #0
 
     # Restore the stack
-    add sp, sp, #16
+    add sp, sp, #8
     ret
 
 unsetenv:
-    # Allocate 16 bytes on the stack to accomodate the argument to this function
+    # Allocate 8 bytes on the stack to accomodate the argument to this function
     # Note that in aarch64, args to functions are loaded in GPRs not the stack
     # We need the registers for other purposes hence saving the arg on the stack beforehand
-    sub sp, sp, #16
-    stp x0, x1, [sp]
+    sub sp, sp, #8
+    str x0, [sp]
     # Set the syscall index to 23 (unset env var) in x8
     mov x8, #23
     # Load the arg count in x0
-    mov x0, #3
+    mov x0, #1
     # Load x1 with the pointer to the arguments i.e. the current stack pointer
     mov x1, sp
     # Operating system trap
     svc #0
 
     # Restore the stack
-    add sp, sp, #16
+    add sp, sp, #8
     ret
 
 getfullenv:
