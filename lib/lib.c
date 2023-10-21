@@ -20,6 +20,7 @@
 #include <stddef.h>
 #include <process/process.h>
 #include <io/print.h>
+#include <memory/memory.h>
 
 void push_back(struct List *list, struct Node *node)
 {
@@ -229,7 +230,7 @@ int keys(const struct Map *map, char** key_list)
     {
         if (map->table[i].key_hash != 0){
             if (key_list)
-                key_list[key_count] = (char*)map->table[i].key;
+                key_list[key_count] = (char*)TO_USER_VIRT(USERSPACE_EXT, map, map->table[i].key);
             key_count++;
         }
     }
