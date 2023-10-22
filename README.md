@@ -1,11 +1,11 @@
 # Frostbyte
-A minimalistic multi-tasking OS developed from scratch for 64-bit ARM architecture. The current version is tested on a virtualized raspberry pi 3b.  
+A minimalistic multi-tasking OS developed from scratch for 64-bit ARM architecture complying in large part with [POSIX](https://en.wikipedia.org/wiki/POSIX) standard of API and shell utilities.  
 
 The purpose of this project is to explore internals of an operating system and create a simple OS which can run on an ARM64 machine and do something useful like view contents on a disk, read files, execute programs and manage running processes.  
 
 The overarching principle is to cross that utility threshold with bare minimum features such that it doesn't just become another shelved useless piece of software which technically works as per design but hardly exposes any interfaces to the user to experience or work with it.  
 
-With **frostbyte**, you can interact with the system on the shell by running commands and programs as well as develop custom programs which can be executed from the shell  
+With **frostbyte**, you can interact with the system on the shell by running commands and programs as well as develop custom programs which can be executed from the shell.  
 
 ## Overview
 Frostbyte comprises of a kernel, some default userspace apps and a shell as one of the apps facilitating interaction with the system  
@@ -79,7 +79,7 @@ Default user is `root` with default password as `toor` (root spelled backwards)
 
 On successful login, a shell for current user is activated to interact with the system. You can log out by entering `exit` on the main shell (usually PID 2) or issuing a `kill` command with the main shell PID.  
 
-![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/c1c977bc-66ca-438e-af24-3a7cf33cf0bb)
+![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/e4d57a8d-309c-4578-b8ab-7beaa79c6342)
 
 To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
 
@@ -104,6 +104,7 @@ You can always learn more about any system by actually using it. Check out [Rele
 - Custom program execution on shell with command-line arguments
 - User inputs (stdin) to foreground user programs
 - Foreground and background process control
+- Environment variables
 
 You can execute commands and programs on the shell by simply entering their name with or without extension. Commands entered on the shell are case insensitive. All executables on frostbyte need to have the `.bin` extension to be qualified as an executable. However, during execution, usage of the `.bin` extension is optional  
 For example, all of the following commands will result in `frostbyte` as output
@@ -116,16 +117,16 @@ uNaMe
 ```
 When you list files with `ls` command, their names will appear in uppercase. The kernel is currently capable of listing files from the FAT16 root directory only. Some directories are placed in the disk image only to test `ls` command's long listing output. Listing files inside subdirectories or changing working directory to a subdirectory is not supported as of the writing of this readme. 
 
-Programs can be run in the foreground or background. To run a program in background we follow the standard practice of appending an `&` at the end. The shell then prints the pid and name of the process it just pushed to background and gets ready for next user input  
+Programs can be run in the foreground or background. To run a program in background we follow the standard practice of appending an `&` at the end. The shell then prints the PID and job specification of the process it just pushed to background and gets ready for next user input. Background processes can be terminated, stopped or moved to the foreground. Apart from `ps`, you can monitor status of background processes with the `jobs` command  
 
-Programs running in the foreground can be terminated with a keyboard interrupt by pressing **Ctrl+C** which will make the shell avaiable again for user input. Apart from this, standard POSIX signals can be sent to any process using the `kill` command  
+Programs running in the foreground can be terminated with a keyboard interrupt by pressing **Ctrl+C** or stopped with **Ctrl+Z** which will make the shell avaiable again for user input. The shell will print the PID and job specification of the stopped process which can be viewed with the `jobs` command. Unlike a terminated process, a stopped process can be resumed either in the foreground or background with the `fg` and `bg` commands. Apart from this, standard POSIX signals can be sent to any process using the `kill` command  
 
 ### Commands
 The following POSIX commands are currently supported by **frostbyte** OS with options.  
 ```
 sh, uname, ls, ps, jobs, fg, bg, export, echo, env, unset, cat, kill, exit, shutdown
 ```
-Usage and short description of any command can be viewed with the `-h` option except for the `echo` command which simply echoes passed arguments and evaluates environment variables or special expressions like `$$` (current shell PID) and `$?` (last command exit status)  
+Usage and short description of any command can be viewed with the `-h` option with some exceptions like the `echo` command which simply prints passed arguments and evaluates environment variables or special expressions  
 For example, `uname -h` will print the following output to the terminal
 ```
 Usage:	uname [OPTION]
