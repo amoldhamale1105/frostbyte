@@ -9,6 +9,16 @@ export LINK := $(PREFIX)ld
 export OBJ_COPY := $(PREFIX)objcopy
 
 export CFLAGS := -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nostartfiles
+# Target platform
+export BOARD ?= qemu
+ifeq ($(BOARD), pi3)
+    CFLAGS += -DRPI3
+else ifeq ($(BOARD), pi4)
+    CFLAGS += -DRPI4
+else
+    CFLAGS += -DQEMU
+endif
+
 DEBUG ?= 1
 ifeq ($(DEBUG), 1)
     CFLAGS += -DDEBUG -g
