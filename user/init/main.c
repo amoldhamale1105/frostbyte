@@ -43,7 +43,7 @@ static int respawn(char* procname, const char* args[], int* new_pid)
 
 int main(void)
 {
-    printf("\nWelcome to %s (A minimalistic aarch64 kernel)\n", stringify_value(NAME));
+    printf("\nWelcome to %s (A minimalistic %s kernel)\n", stringify_value(NAME), stringify_value(ARCH));
     int pid = fork();
     
     if (pid == 0) /* Child process */

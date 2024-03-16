@@ -22,4 +22,4 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.s
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
-	$(CC) -DNAME=$(KERNEL_NAME) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) -DARCH=$(TARGET_ARCH) -DNAME=$(KERNEL_NAME) $(INCLUDES) $(CFLAGS) -c $< -o $@
