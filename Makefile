@@ -9,6 +9,7 @@ export LINK := $(PREFIX)ld
 export OBJ_COPY := $(PREFIX)objcopy
 
 export CFLAGS := -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nostartfiles
+ASMLAGS := -x assembler-with-cpp
 # Target platform
 export BOARD ?= qemu
 ifeq ($(BOARD), pi3)
@@ -108,7 +109,7 @@ $(BUILD_DIR)/main.o : $(SRC_DIR)/main.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.s
-	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDES) $(CFLAGS) $(ASMLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
