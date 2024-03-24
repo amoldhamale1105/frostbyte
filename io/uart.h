@@ -21,7 +21,11 @@
 
 #include <memory/memory.h>
 
+#ifdef RPI4
+#define IO_BASE_ADDR    TO_VIRT(0xfe200000)
+#else
 #define IO_BASE_ADDR    TO_VIRT(0x3f200000)
+#endif
 
 #define UART0_DR        IO_BASE_ADDR + 0x1000 /* Data register */
 #define UART0_FR        IO_BASE_ADDR + 0x1018 /* Flags register */
