@@ -16,7 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-.equ MAITR_ATTR,    (0x44 << 8) // Memory attribute indirection register, LSB 8-bits set to 0 (device memory) and next set to 0x44 (normal memory)
+.equ MAITR_ATTR,    (0x44 << 8) // Memory attribute indirection register with 8 8-bit sections. Currently, only first 2 sections are used
+                                // Frist section (index 0) set to 0 (code for device memory) and next (index 1) set to 0x44 (code for normal memory)
 .equ TCR_T0SZ,      (16)
 .equ TCR_T1SZ,      (16 << 16)
 .equ TCR_TG0,       (0 << 14)
@@ -102,16 +103,44 @@ loop1:
     # Compare with memory end otherwise continue while it is less
     cmp x0, x2
     blo loop1
-
-    # Map the peripheral area to the kernel space (interrupt controller, arm timer registers etc.) (0x3f000000 - 0x40000000)
+    # Map the peripheral area to the kernel space (interrupt controller, arm timer registers etc.)
+#ifdef RPI4
+    # start->end: 0xf0000000 - 0x100000000 (256M)
+    # This address range falls in the 3G-4G memory region (0xc0000000 - 0x100000000)
+    # This translates to fourth entry in the upper directory table since each entry corresponds to 1G memory region
+    # Get the upper and middle directory table addresses
+    adr x0, pud_ttbr1
+    # Since each entry is 8 bytes, the offset of fourth entry will be 24 bytes in the middle directory table
+    add x0, x0, #24
+    adr x1, pmd4_ttbr1
+    # Logical OR to set valid bit 0 and bit 1 to indicate that it points to next level page table
+    orr x1, x1, #3
+    # Save address of middle directory table to upper directory entry
+    str x1, [x0]
+    mov x2, #0x100000000
+    mov x0, #0xf0000000
+#else
+    # start->end: 0x3f000000 - 0x41000000 (32M)
+    # This routine is limited to the boundary of current middle directory table entry (0x40000000)
+    # Subsequent routines will cover new MDT tables for memory region beyond 0x40000000
     mov x2, #0x40000000
     mov x0, #0x3f000000
-
+#endif
+#ifdef RPI4
+    adr x3, pmd4_ttbr1
+    # Calculate the middle directory table offset for peripheral start address 0xf0000000
+    mov x4, #(0xf0000000 - 0xc0000000)
+#else
     adr x3, pmd_ttbr1
+#endif
     # To calculate the page offset with 2M page size, shift right the start address by 21 bits (2^21 = 2M)
     # Each table entry being 8 bytes, we shift left by 3 bits to get correct offset (left shifting by 3 is equivalent to multiplying by 8)
     # Store the entry offset in x1
+#ifdef RPI4
+    lsr x1, x4, #(21 - 3)
+#else
     lsr x1, x0, #(21 - 3)
+#endif
     # Add the offset to the table address
     add x1, x1, x3
     # Set the memory attributes, clear bit 2 to set the index value to 0 which stands for device memory
@@ -128,6 +157,7 @@ loop2:
     cmp x0, x2
     blo loop2
 
+#ifdef QEMU
     # Map addresses greater than 1G in the second entry of the upper directory table (first entry mapped the lower 1G)
     adr x0, pud_ttbr1
     # Add 8 to upper directory table to get seond entry
@@ -136,7 +166,8 @@ loop2:
     orr x1, x1, #3
     str x1, [x0]
 
-    # Start and end address of memory mapped registers (0x40000000 - 0x41000000)
+    # Start and end address of memory mapped registers which are mapped to physical memory beyond 1G (0x40000000 - 0x41000000)
+    # For instance, the timer registers defined in irq.h
     mov x2, #0x41000000
     mov x0, #0x40000000
 
@@ -153,6 +184,7 @@ loop3:
     # Compare with memory end otherwise continue while it is less
     cmp x0, x2
     blo loop3
+#endif
 
 setup_uvm:
     # Get the addresses of the global and upper page directory tables
@@ -174,7 +206,7 @@ setup_uvm:
     # Get the address of the middle directory table
     adr x1, pmd_ttbr0
     # Set valid bit (bit 0) to 1, access bit (bit 10) to 1
-    # Bits 2-4 are an index to the memory attribute indirection register. We set bit 2 to high so that the index value will be 1
+    # Bits 2-4 are an index to the memory attribute indirection register. We set bit 2 to high so that the index value will be 1 (normal memory)
     mov x0, #(1 << 10 | 1 << 2 | 1 << 0)
     # Save the value to first entry of the middle directory table
     str x0, [x1]
@@ -194,9 +226,12 @@ pud_ttbr1:
 pmd_ttbr1:
     .space 4096
 # Middle directory to map addresses beyond the first 1G physical memory chunk
+#ifdef RPI4
+pmd4_ttbr1:
+#else
 pmd2_ttbr1:
+#endif
     .space 4096
-
 # Dummy user mode translation tables. Real ones will be set up separately for each process when they are created
 # Top level global page directory table with 512 entries, 8-byte each. Each entry represents 512G of memory
 pgd_ttbr0:
