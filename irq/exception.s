@@ -95,7 +95,7 @@
 .global trap_return
 
 # Align the vector table to a 2KB boundary (0x800 = 2048)
-# Aligh each handler within it to 128 byte boundary (0x80 = 128)
+# Align each handler within it to 128 byte boundary (0x80 = 128)
 .balign 0x800
 vector_table:
 # Current el with sp0 handlers for EL1
