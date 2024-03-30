@@ -66,9 +66,8 @@ void init_uart(void)
        UART clock = 48 MHz, baud rate = 115200 */
     out_word(UART0_IBRD, 26);
     out_word(UART0_FBRD, 0);
-    /* Write 1 to bit 4 of line control register to enable FIFO buffer
-       Write 1 to bit 5 and 6 to enable 8-bit data mode */
-    out_word(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
+    /* Write 1 to bit 5 and 6 to enable 8-bit data mode */
+    out_word(UART0_LCRH, (1 << 5) | (1 << 6));
     /* Write 1 to bit 4 of interrupt mask set or clear register to enable interrupts */
     out_word(UART0_IMSC, (1 << 4));
     /* Set bits 0,8,9 of control register to high to enable uart0, transmit and receive */

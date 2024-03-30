@@ -45,15 +45,24 @@ void init_interrupt_controller(void)
     /* The distributor priority register is 32 bits long and can hold priority levels for 4 interrupts (1 byte each)
        Timer interrupt will use the 17th ICD register (16 * 4-byte ICD_PR = 64). Make it the highest priority interrupt (value 0) */
     out_word(ICD_PR + TIMER_IRQ, 0);
+    /* UART interrrupt will use the 38th ICD register (38 * 4-byte ICD_PR = ~153) */
+    out_word(ICD_PR + ((VC_IRQ_BASE + UART_IRQ)/4) * 4, 1);
     /* The processor target interrupt register has the same structure and calculation as ICD_PR hence offset for timer IRQ remains the same
        This register determines which CPU core handles a given interrupt at specified offset. Timer IRQ is configured to be handled by core 0 */
     out_word(ICD_PTR + TIMER_IRQ, 1);
+    /* Configure core 0 to habdle UART interrupt by setting lowest bit of 2nd byte in the 38th ICD register */
+    out_word(ICD_PTR + ((VC_IRQ_BASE + UART_IRQ)/4) * 4, 0x100);
     /* Interrupt config register holds sensitivity data for 16 interrupts 2-bit each. Timer IRQ's offset will fall in 4th register.
        The secomd bit of each entry: 0 => level triggered, 1 => edge triggered, We set timer interrupt to be edge triggered */
     out_word(ICD_ICFGR + TIMER_IRQ/4, 2);
+    /* UART IRQ will fall in the 10th register so register offset will be 9 * 4-byte ICD_ICFGR = 36
+       Write 1 to the upper bit of the 9th 2-bit block of this register ((96+57) - (16*9) = 9) to configure it as edge triggered */
+    out_word(ICD_ICFGR + ((VC_IRQ_BASE + UART_IRQ)/16) * 4, 0x20000);
     /* Each bit of 4-byte interrupt set enable register determines whether an interrupt is enabled or not
        Timer interrupt will use the 3rd ICD register hence offset will be 8 (2 * 4-byte ICD_ISENABLE = 8) */
     out_word(ICD_ISENABLE + TIMER_IRQ/8, 1);
+    /* Calculate register offset for UART IRQ and write 1 to 25th bit in it to enable this interrupt */
+    out_word(ICD_ISENABLE + ((VC_IRQ_BASE + UART_IRQ)/32) * 4, (1 << 25));
     /* Enable the distributor and CPU interface */
     out_word(DISTR_CTL, 1);
     out_word(CPUIF_CTL, 1);
@@ -159,13 +168,10 @@ void handler(struct ContextFrame* ctx)
     case 2:
 #ifdef RPI4
         irq = get_irq_number();
+        if (irq == TIMER_IRQ)
 #else
         /* Read the interrupt source register to check what kind of hardware interrupt it is */
         irq = in_word(CNTP_STATUS_EL0);
-#endif
-#ifdef RPI4
-        if (irq == TIMER_IRQ)
-#else
         /* High bit 1 indicates timer interrupt */
         if (irq & (1 << 1))
 #endif
@@ -174,9 +180,13 @@ void handler(struct ContextFrame* ctx)
             trigger_scheduler();
         }
         else{
+#ifdef RPI4
+            if (irq == (VC_IRQ_BASE + UART_IRQ))
+#else
             irq = get_irq_number();
             /* Bit 19 of the interrupt pending register is for IRQ 57 i.e. UART interrupt */
             if (irq & (1 << 19))
+#endif
                 uart_handler();
             else{
                 printk("Unknown hardware interrupt\r\n");

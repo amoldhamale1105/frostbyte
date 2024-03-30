@@ -54,7 +54,9 @@
 #define DISABLE_BASIC_IRQS      (BASE_ADDR + 0xb224)
 #endif
 
+#define UART_IRQ            57                      /* UART IRQ */
 #ifdef RPI4
+#define VC_IRQ_BASE         96                      /* VC peripheral IRQs base SPI IDs 96-159 */
 #define TIMER_IRQ           64                      /* ARM timer part of ARMC peripheral IRQs SPI IDs 64-79 */
 #define TIMER_LOAD          (BASE_ADDR + 0xB400)    /* Timer value load register */
 #define TIMER_CTL           (BASE_ADDR + 0xB408)    /* Timer control register */

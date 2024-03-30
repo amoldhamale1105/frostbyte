@@ -34,6 +34,8 @@ int printk(const char *fmt, ...)
     {
         if (*p != '%')
         {
+            if (*p == '\n')
+                write_char('\r');
             write_char(*p);
             continue;
         }
