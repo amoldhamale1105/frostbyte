@@ -67,7 +67,11 @@ enum En_ProcessState
 #define ASCII_LOWERCASE_START 97
 #define ASCII_LOWERCASE_END 122
 #define ASCII_UPPERCASE_OFFSET 32
+#ifdef RPI4
+#define ASCII_DELETE 8
+#else
 #define ASCII_DELETE 127
+#endif
 #define ASCII_ESCAPE 27
 #define ASCII_CTRL_C 0x03
 #define ASCII_CTRL_Z 26

@@ -8,6 +8,14 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 OBJS := $(BUILD_DIR)/print.o $(BUILD_DIR)/flib.o $(BUILD_DIR)/flib_asm.o
 
+ifeq ($(BOARD), pi3)
+    CFLAGS += -DRPI3
+else ifeq ($(BOARD), pi4)
+    CFLAGS += -DRPI4
+else
+    CFLAGS += -DQEMU
+endif
+
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
 .PHONY: all

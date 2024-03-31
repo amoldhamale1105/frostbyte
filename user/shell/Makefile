@@ -5,6 +5,14 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 OBJS := $(BUILD_DIR)/start.o $(BUILD_DIR)/main.o $(BUILD_DIR)/shell.o ../lib/bin/flib.a
 
+ifeq ($(BOARD), pi3)
+    CFLAGS += -DRPI3
+else ifeq ($(BOARD), pi4)
+    CFLAGS += -DRPI4
+else
+    CFLAGS += -DQEMU
+endif
+
 $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
 .PHONY: all

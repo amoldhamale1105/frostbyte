@@ -11,13 +11,13 @@ export OBJ_COPY := $(PREFIX)objcopy
 export CFLAGS := -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nostartfiles
 ASMLAGS := -x assembler-with-cpp
 # Target platform
-export BOARD ?= qemu
+BOARD ?= qemu
 ifeq ($(BOARD), pi3)
-    CFLAGS += -DRPI3
+    KERN_CFLAGS += -DRPI3
 else ifeq ($(BOARD), pi4)
-    CFLAGS += -DRPI4
+    KERN_CFLAGS += -DRPI4
 else
-    CFLAGS += -DQEMU
+    KERN_CFLAGS += -DQEMU
 endif
 
 DEBUG ?= 1
@@ -60,10 +60,10 @@ kernel: $(OBJS)
 	$(OBJ_COPY) -O binary $(OUTPUT_DIR)/$(KERNEL_NAME) $(OUTPUT_DIR)/$(KERNEL_IMAGE)
 
 user:
-	cd ./user/lib && $(MAKE)
+	cd ./user/lib && $(MAKE) BOARD=$(BOARD)
 	cd ./user/init && $(MAKE)
-	cd ./user/login && $(MAKE)
-	cd ./user/shell && $(MAKE)
+	cd ./user/login && $(MAKE) BOARD=$(BOARD)
+	cd ./user/shell && $(MAKE) BOARD=$(BOARD)
 	cd ./user/ps && $(MAKE)
 	cd ./user/jobs && $(MAKE)
 	cd ./user/jobctl && $(MAKE)
@@ -74,7 +74,7 @@ user:
 	cd ./user/unset && $(MAKE)
 	cd ./user/cat && $(MAKE)
 	cd ./user/kill && $(MAKE)
-	cd ./user/uname && $(MAKE)
+	cd ./user/uname && $(MAKE) BOARD=$(BOARD)
 	cd ./user/exit && $(MAKE)
 	cd ./user/shutdown && $(MAKE)
 	cd ./user/test && $(MAKE)
@@ -106,10 +106,10 @@ clean: user_clean
 	rm -f $(OUTPUT_DIR)/*
 
 $(BUILD_DIR)/main.o : $(SRC_DIR)/main.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDES) $(CFLAGS) $(KERN_CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.s
-	$(CC) $(INCLUDES) $(CFLAGS) $(ASMLAGS) -c $< -o $@
+	$(CC) $(INCLUDES) $(CFLAGS) $(ASMLAGS) $(KERN_CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o : $(SRC_DIR)/*/%.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDES) $(CFLAGS) $(KERN_CFLAGS) -c $< -o $@
