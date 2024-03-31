@@ -86,11 +86,11 @@ uint64_t get_ticks(void)
 void init_timer(void)
 {
 #ifdef RPI4
-    /* timer_clock = apb_clock / (pre-divider+1) => 250 MHz / (0x7d+1) = ~2 MHz, 250 and 7d are default values of apb_clock and pre-divider */
+    /* timer_clock = apb_clock / (pre-divider+1) => 200 MHz / (0x7d+1) = ~1.6 MHz, 200 MHz and 7d are default values of apb_clock and pre-divider */
     out_word(TIMER_PREDIV, 0x7d);
-    /* The exact timer_clock value from the previous equation was 1984126 Hz i.e. 1984126 ticks per second
+    /* The exact timer_clock value from the previous equation was 1587301 Hz i.e. 1587301 ticks per second
        Dividing this by 100 will yield the value of timer_clock elapsed after every 10 ms which is the kernel's tick interval */
-    out_word(TIMER_LOAD, 19841);
+    out_word(TIMER_LOAD, 15873);
     /* With ref to BCM2711 TRM, high bit 1 => 32-bit counter, bit 5 => timer intr enabled, bit 7 => timer enabled */
     /* The timer interrupt is configured as a recurring interrupt which is fired every 10 ms */
     out_word(TIMER_CTL, 0b10100010);
