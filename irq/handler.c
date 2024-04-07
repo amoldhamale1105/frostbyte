@@ -142,6 +142,7 @@ static uint32_t get_irq_number(void)
 
 void handler(struct ContextFrame* ctx)
 {
+    bool schedule = false;
     uint32_t irq;
     /* Whether the exception occured because of a userspace process */
     bool user_except = ((ctx->spsr & PSTATE_MODE_MASK) == 0);
@@ -177,7 +178,7 @@ void handler(struct ContextFrame* ctx)
 #endif
         {
             timer_interrupt_handler();
-            trigger_scheduler();
+            schedule = true;
         }
         else{
 #ifdef RPI4
@@ -213,4 +214,7 @@ void handler(struct ContextFrame* ctx)
         }
         break;
     }
+
+    if (schedule)
+        trigger_scheduler();
 }
