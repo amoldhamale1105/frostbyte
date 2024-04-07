@@ -55,14 +55,14 @@ static struct Process* alloc_new_process(void)
     /* Allocate memory for the process page table, kernel stack and heap */
     process->page_map = (uint64_t)kalloc();
     ASSERT(process->page_map != 0);
-    memset((void*)process->page_map, 0, PAGE_SIZE);
+    memset((void*)process->page_map, 0, PAGE_TABLE_SIZE);
     /* The kernel stack will reside at the top of the allocated page. Heap starts after the stack */
     process->stack = (uint64_t)(process->page_map + PAGE_SIZE - STACK_SIZE);
     process->heap = (uint64_t)(process->page_map + PAGE_SIZE - STACK_SIZE - HEAP_SIZE);
     /* Allocate extended memory for holding the process environment, heap and shared memory */
     process->env = (uint64_t)kalloc();
     ASSERT(process->env != 0);
-    memset((void*)process->env, 0, PAGE_SIZE);
+    memset((void*)process->env, 0, sizeof(struct Map));
 
     process->state = INIT;
     process->event = NONE;
@@ -387,7 +387,7 @@ void sleep(int event)
     /* Save the reason of wait which can used in wake_up to selectively wake up processes based on occurred events */
     process->event = event;
 
-    /* Enqueue the process on the wait list so that it cannnot be rescheduled until woken up and placed on ready queue */
+    /* Enqueue the process on the wait list so that it cannot be rescheduled until woken up and placed on ready queue */
     push_back(&pc.wait_list, (struct Node*)process);
     /* Call the scheduler to replace the current process (which just slept) with other process on the ready queue */
     schedule();
@@ -583,7 +583,10 @@ int fork(void)
             pc.fg_process = NULL;
     }
     /* Copy the text, data, stack and other regions of the parent to the child process' memory */
-    if (!copy_uvm(process, pc.curr_process->page_map))
+    char currproc_filename[MAX_FILENAME_BYTES+MAX_EXTNAME_BYTES+2];
+    memcpy(currproc_filename, pc.curr_process->name, strlen(pc.curr_process->name));
+    memcpy(currproc_filename+strlen(pc.curr_process->name), ".BIN", 5);
+    if (!copy_uvm(process, pc.curr_process->page_map, currproc_filename))
         return -1;
 
     /* Replicate the parent file descriptor table for the child since it shares all open files with the parent 
@@ -663,7 +666,6 @@ int exec(struct Process* process, char* name, const char* args[])
     memcpy(process->name, name, namelen-(MAX_EXTNAME_BYTES+1));
     /* In exec call, the regions of the current process are overwritten with the regions of the new process and PID remains the same.
        Hence there's no need to allocate new memory for the new program */
-    memset((void*)USERSPACE_BASE, 0, PAGE_SIZE);
     size = get_file_size(process, fd);
     /* We use the userspace virt address as buffer because memory was previously allocated for the process which called exec */
     size = read_file(process, fd, (void*)USERSPACE_BASE, size);
@@ -700,12 +702,14 @@ int exec(struct Process* process, char* name, const char* args[])
     *arg_ptr = (int64_t)arg_val;
     arg_ptr++;
     arg_val += (namelen+1);
+    *(arg_val-1) = 0;
     for(int i = 0; i < process->argc; i++)
     {
         memcpy(arg_val, arg_val_kh, arg_len[i]);
         *arg_ptr = (int64_t)arg_val;
         arg_ptr++;
         arg_val += (arg_len[i]+1);
+        *(arg_val-1) = 0;
         arg_val_kh += (arg_len[i]+1);
     }
 

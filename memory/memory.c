@@ -218,7 +218,6 @@ bool setup_uvm(struct Process* process, char* program_filename)
     void* proc_page = kalloc();
 
     if (proc_page != NULL){
-        memset(proc_page, 0, PAGE_SIZE);
         /* If the page mapping succeeds, load the file into that memory */
         if (map_page(map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
             int fd = open_file(process, program_filename);
@@ -246,14 +245,13 @@ out:
     return false;
 }
 
-bool copy_uvm(struct Process* process, uint64_t src_map)
+bool copy_uvm(struct Process* process, uint64_t src_map, char* src_program_filename)
 {
     uint64_t* mdt_table;
     int mdt_index;
     void* proc_page = kalloc();
 
     if (proc_page != NULL){
-        memset(proc_page, 0, PAGE_SIZE);
         if (map_page(process->page_map, USERSPACE_BASE, TO_PHY(proc_page), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED)){
             /* Find the source page to copy contents to the dest page using the middle directory table
                Note that the UDT entry is nothing but address of the MDT table according to our paging setup */
@@ -267,7 +265,16 @@ bool copy_uvm(struct Process* process, uint64_t src_map)
             /* Get the physical page address of the source */
             uint64_t src_mem = TO_VIRT(PAGE_TABLE_ENTRY_ADDR(mdt_table[mdt_index]));
             /* Copy the source to destination */
-            memcpy(proc_page, (void*)src_mem, PAGE_SIZE);
+            int fd = open_file(process, src_program_filename);
+            if (fd < 0)
+                goto out;
+            uint32_t binary_size = get_file_size(process, fd);
+            close_file(process, fd);
+            memcpy(proc_page, (void*)src_mem, binary_size);
+            /* Copy the bss section of the source process */
+            memcpy(proc_page+binary_size, (void*)(src_mem+binary_size), DEF_BSS_SIZE);
+            /* Copy the source process userspace stack and heap */
+            memcpy((void*)((uint64_t)proc_page+PAGE_SIZE-(STACK_SIZE+HEAP_SIZE)), (void*)(src_mem+PAGE_SIZE-(STACK_SIZE+HEAP_SIZE)), STACK_SIZE+HEAP_SIZE);
             /* Map extended page to userspace virtual address space */
             if (!map_page(process->page_map, USERSPACE_EXT, TO_PHY(process->env), ENTRY_VALID | USER_MODE | NORMAL_MEMORY | ENTRY_ACCESSED))
                 goto out;

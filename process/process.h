@@ -60,8 +60,9 @@ struct ProcessControl
     struct List zombies; /* Processes that have exited and awaiting resource cleanup */
 };
 
-#define STACK_SIZE 0x80000 /* 512K */
-#define HEAP_SIZE 0x100000 /* 1M */
+#define STACK_SIZE 0x21000 /* 132K */
+#define HEAP_SIZE 0x80000 /* 512K */
+#define DEF_BSS_SIZE 0x4000 /* 16K */
 #define PROC_TABLE_SIZE 100
 #define USERSPACE_CONTEXT_SIZE (12*8) /* 12 GPRs saved on the stack when context switch done by scheduler (see swap function) */
 #define REGISTER_POSITION(addr, n) ((uint64_t)(addr) + (n*8)) /* Position of nth 8-byte register from current address */
