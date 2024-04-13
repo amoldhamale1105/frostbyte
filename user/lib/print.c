@@ -48,8 +48,6 @@ int printf(const char *fmt, ...)
                 count += flush_uart(buf, pos);
                 pos = 0;
             }
-            if (*p == '\n')
-                buf[pos++] = '\r';
             buf[pos++] = *p;
             continue;
         }

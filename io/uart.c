@@ -37,6 +37,8 @@ void write_string(const char *str)
 {
     while (*str)
     {
+        if (*str == '\n')
+            write_char('\r');
         write_char(*str++);
     }   
 }
