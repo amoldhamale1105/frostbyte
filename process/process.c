@@ -674,6 +674,8 @@ int exec(struct Process* process, char* name, const char* args[])
         exit(process, 1, false);
 
     close_file(process, fd);
+    /* Initialize bss segment */
+    memset((void*)(USERSPACE_BASE+size), 0, DEF_BSS_SIZE);
     /* Clear any previously set custom handlers and initialize default signal handlers for the new process */
     memset(process->handlers, 0, sizeof(SIGHANDLER)*TOTAL_SIGNALS);
     init_handlers(process);
