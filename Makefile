@@ -1,4 +1,4 @@
-HOST_ARCH := x86_64
+HOST_ARCH := $(shell uname -i)
 export TARGET_ARCH := aarch64
 export VENDOR := none
 export TARGET_OS := elf
