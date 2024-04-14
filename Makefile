@@ -12,9 +12,9 @@ export CFLAGS := -ffreestanding -mgeneral-regs-only -nostdlib -std=c99 -O0 -nost
 ASMLAGS := -x assembler-with-cpp
 # Target platform
 BOARD ?= qemu
-ifeq ($(BOARD), pi3)
+ifeq ($(BOARD), rpi3)
     KERN_CFLAGS += -DRPI3
-else ifeq ($(BOARD), pi4)
+else ifeq ($(BOARD), rpi4)
     KERN_CFLAGS += -DRPI4
 else
     KERN_CFLAGS += -DQEMU

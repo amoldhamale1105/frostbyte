@@ -26,7 +26,8 @@ static void print_usage(void)
     printf("\t-h\tdisplay this help and exit\n");
     printf("\t-a\tprint all system information in following order:\n");
     printf("\t-s\tprint the kernel name\n");
-    printf("\t-r\tprint the kernel version\n");
+    printf("\t-r\tprint the kernel release\n");
+    printf("\t-m\tprint the machine hardware name\n");
     printf("\t-i\tprint the hardware platform architecture\n");
 }
 
@@ -53,6 +54,7 @@ int main(int argc, char** argv)
                 case 'r':
                 case 'a':
                 case 'i':
+                case 'm':
                 case 's':
                     option = *optstr;
                     break;
@@ -73,10 +75,13 @@ int main(int argc, char** argv)
         printf("%s\n", stringify_value(VERSION));
         break;
     case 'a':
-        printf("%s %s %s\n", stringify_value(NAME), stringify_value(VERSION), stringify_value(ARCH));
+        printf("%s %s %s %s\n", stringify_value(NAME), stringify_value(VERSION), stringify_value(BOARD), stringify_value(ARCH));
         break;
     case 'i':
         printf("%s\n", stringify_value(ARCH));
+        break;
+    case 'm':
+        printf("%s\n", stringify_value(BOARD));
         break;
     case 's':
     default:

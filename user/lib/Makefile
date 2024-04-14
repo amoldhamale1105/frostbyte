@@ -8,9 +8,9 @@ BUILD_DIR := ./build
 OUTPUT_DIR := ./bin
 OBJS := $(BUILD_DIR)/print.o $(BUILD_DIR)/flib.o $(BUILD_DIR)/flib_asm.o
 
-ifeq ($(BOARD), pi3)
+ifeq ($(BOARD), rpi3)
     CFLAGS += -DRPI3
-else ifeq ($(BOARD), pi4)
+else ifeq ($(BOARD), rpi4)
     CFLAGS += -DRPI4
 else
     CFLAGS += -DQEMU

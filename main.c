@@ -49,6 +49,7 @@ void kmain(void)
 void shutdown_banner(void)
 {
     printk("Shutdown complete\n");
-    /* This will be conditional when support is added for hardware */
+#ifdef QEMU
     printk("Press Ctrl-A X to exit QEMU monitor\n");
+#endif
 }
