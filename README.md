@@ -14,10 +14,7 @@ The source code is broadly categorized into 2 sections:
 - The kernel source tree at the top level
 - The **user** directory containing userspace apps and libraries
 
-The filesystem uses a FAT16 disk whose image is present in the **boot** directory. As of now, the kernel doesn't have a disk driver and loader, so the FAT16 disk image is appended to the end of the kernel image creating one monolithic image which will be be extracted at runtime and loaded at 2 different virtual addresses in memory by the kernel
-
-## Prerequisites  
-Download [qemu](https://www.qemu.org/download/) or build it from source to be able to emulate raspberry pi 3b.  
+The filesystem uses a FAT16 disk whose image is present in the **boot** directory. As of now, the kernel doesn't have a disk driver and loader, so the FAT16 disk image is appended to the end of the kernel image creating one monolithic image which will be be extracted at runtime and loaded at 2 different virtual addresses in memory by the kernel 
 
 ## Build instructions
 For out of the box ready to use and test images, check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) and skip ahead to the [Run and Test](https://github.com/amoldhamale1105/frostbyte#run-and-test) section in this readme
@@ -36,6 +33,11 @@ export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch
 
 ### Build
 The top level **Makefile** in the source tree is designed to build the entire project including the userspace and test utilities. It will also take care of copying over required binaries and other files to the FAT16 disk image.  
+
+Select target platform using the `BOARD` make variable and generate images for real hardware or emulator. Currently, 3 options are available:  
+- rpi3 (currently unsupported, builds image for qemu emulated raspberrypi 3)
+- rpi4 (builds image for raspberrypi 4 SoC)
+- qemu => default
 
 To build the entire project with the kernel and userspace binaries, navigate to the root of this project
 ```
@@ -56,11 +58,23 @@ To clean build and output artifacts,
 ```
 make clean
 ```
-You can selectively build and clean artifacts by running make on specific targets only. Check out the Makefile for more ideas  
+You can selectively build and clean artifacts by running make on specific targets and `BOARD`s only.    
 
-All build artifacts will be present in the **build** directory and output artifacts in the **bin** directory. A successful build should generate **kernel8.img** and **frostbyte** files in the **bin** directory.
+All build artifacts will be present in the **build** directory and output artifacts in the **bin** directory. A successful build should generate **kernel8.img** and **frostbyte** files under a board specific subdirectory in **bin**.
 
-## Run and Test  
+## Run and Test 
+### Hardware
+Flash an SD card with a 64-bit [raspberrypi OS](https://www.raspberrypi.com/software/operating-systems/) image or use one flashed by default. Mount the boot parition and edit the **config.txt** file to add the following 2 lines:
+```
+dtoverlay=disable-bt
+enable_uart=1
+```
+
+Replace the generated **kernel8.img** file in the mounted boot partition directory. Insert the SD card into the board.  
+
+Connect the board serially to your host machine (check out online on how you can connect the pi serially to your computer)
+Set the serial port device (mostly `/dev/ttyUSB0`) and baud rate to 115200 in your serial port communication program. Once the serial monitor is ready, boot up your board.  
+### Emulator
 Replace `/path/to/kernel-image` in the following command with location of the `kernel8.img` file and run it to start a virtualized raspberry pi 3b instance running **frostbyte**.
 ```
 qemu-system-aarch64 \
@@ -70,9 +84,9 @@ qemu-system-aarch64 \
     -kernel /path/to/kernel-image \
     -nographic
 ```
-On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.  
+On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.   
 
-The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. You can mount the FAT16 disk image on host with `make mount` to add new users with password and other details in existing syntax in the **temp/passwd** file.  
+The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. You can mount the FAT16 disk image on host with `make mount` to add new users with password and other details in existing syntax in the **passwd** file.  
 Default user is `root` with default password as `toor` (root spelled backwards)  
 
 ![frostbyte_login](https://github.com/amoldhamale1105/frostbyte/assets/78597991/2eaca107-3d60-4f0f-8578-7fdc8d95a381)
@@ -135,7 +149,8 @@ Usage:	uname [OPTION]
 	-h	display this help and exit
 	-a	print all system information in following order:
 	-s	print the kernel name
-	-r	print the kernel version
+	-r	print the kernel release
+	-m	print the machine hardware name
 	-i	print the hardware platform architecture
 ```
 
