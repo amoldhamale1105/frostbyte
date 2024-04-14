@@ -31,11 +31,11 @@ export LDFLAGS := -nostdlib
 SRC_DIR := .
 INCLUDES := -I./$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/include -I./lib/gcc/$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/$(GCC_VERSION)/include -I.
 BUILD_DIR := ./build
-OUTPUT_DIR := ./bin
-export MOUNT_POINT := $(PWD)/temp
+OUTPUT_DIR := ./bin/$(BOARD)
+export MOUNT_POINT := $(PWD)/build/fdisk
 export KERNEL_NAME := frostbyte
 export KERNEL_VERSION := 2.4.0
-export FAT16_DISK := $(PWD)/boot/$(KERNEL_NAME)_disk.img
+export FAT16_DISK := $(KERNEL_NAME)_disk.img
 export KERNEL_IMAGE := kernel8.img
 OBJS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/main.o $(BUILD_DIR)/lib_asm.o $(BUILD_DIR)/uart.o $(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o \
 		$(BUILD_DIR)/handler.o $(BUILD_DIR)/exception.o $(BUILD_DIR)/mmu.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/file.o ${BUILD_DIR}/process.o \
@@ -45,11 +45,12 @@ $(info $(shell mkdir -p $(BUILD_DIR) $(OUTPUT_DIR)))
 
 .PHONY: all mount unmount clean user
 all: mount kernel user unmount
-	dd if=$(FAT16_DISK) >> $(OUTPUT_DIR)/$(KERNEL_IMAGE)
+	dd if=$(BUILD_DIR)/$(FAT16_DISK) >> $(OUTPUT_DIR)/$(KERNEL_IMAGE)
 
 mount:
 	mkdir -p $(MOUNT_POINT)
-	sudo mount -t vfat -o loop,offset=$$((63*512)),uid=$$(id -u),gid=$$(id -g) $(FAT16_DISK) $(MOUNT_POINT)
+	cp -ran ./boot/$(FAT16_DISK) $(BUILD_DIR)
+	sudo mount -t vfat -o loop,offset=$$((63*512)),uid=$$(id -u),gid=$$(id -g) $(BUILD_DIR)/$(FAT16_DISK) $(MOUNT_POINT)
 
 unmount:
 	sync && sudo umount $(MOUNT_POINT)
