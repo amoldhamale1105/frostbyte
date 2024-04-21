@@ -21,11 +21,11 @@ export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch
 ```
 
 ### Build
-Select target platform using the optional `BOARD` make variable. Currently available options based on [board support](https://github.com/amoldhamale1105/frostbyte/edit/master/README.md#board-support):  
+Select target platform using the optional `BOARD` make variable. Currently available options based on [board support](https://github.com/amoldhamale1105/frostbyte?tab=readme-ov-file#board-support):  
 - rpi3 (WIP, builds image for qemu emulated raspberrypi 3)
 - rpi4 (builds image for raspberrypi 4 SoC)
 - qemu => default
-
+https://github.com/amoldhamale1105/frostbyte?tab=readme-ov-file#board-support
 To build the entire project with the kernel and userspace apps, at the top of the source tree
 ```
 make all
