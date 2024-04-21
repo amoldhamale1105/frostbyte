@@ -1,23 +1,12 @@
 # Frostbyte
-A minimalistic multi-tasking OS developed from scratch for 64-bit ARM architecture complying in large part with [POSIX](https://en.wikipedia.org/wiki/POSIX) standard of API and shell utilities.  
+A headless kernel with [POSIX](https://en.wikipedia.org/wiki/POSIX) interface for system call API (`user/lib/flib.h`) and shell commands  
+### Architecture 
+ARM64  
+### Board support
+qemu, raspberrypi 3, raspberrypi 4  
 
-The purpose of this project is to explore internals of an operating system and create a simple OS which can run on an ARM64 machine and do something useful like view contents on a disk, read files, execute programs and manage running processes.  
-
-The overarching principle is to cross that utility threshold with bare minimum features such that it doesn't just become another shelved useless piece of software which technically works as per design but hardly exposes any interfaces to the user to experience or work with it.  
-
-With **frostbyte**, you can interact with the system on the shell by running commands and programs as well as develop custom programs which can be executed from the shell.  
-
-## Overview
-Frostbyte comprises of a kernel, some default userspace apps and a shell as one of the apps facilitating interaction with the system  
-
-The source code is broadly categorized into 2 sections:  
-- The kernel source tree at the top level
-- The **user** directory containing userspace apps and libraries
-
-The filesystem uses a FAT16 disk whose image is present in the **boot** directory. As of now, the kernel doesn't have a disk driver and loader, so the FAT16 disk image is appended to the end of the kernel image creating one monolithic image which will be be extracted at runtime and loaded at 2 different virtual addresses in memory by the kernel 
-
-## Build instructions
-For out of the box ready to use and test images, check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) and skip ahead to the [Run and Test](https://github.com/amoldhamale1105/frostbyte#run-and-test) section in this readme
+## Build from source
+For out of box images, check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) and skip ahead to the [Run and Test](https://github.com/amoldhamale1105/frostbyte#run-and-test) section
 
 ### Environment setup
 A Linux host machine  
@@ -32,14 +21,12 @@ export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch
 ```
 
 ### Build
-The top level **Makefile** in the source tree is designed to build the entire project including the userspace and test utilities. It will also take care of copying over required binaries and other files to the FAT16 disk image.  
-
-Select target platform using the `BOARD` make variable and generate images for real hardware or emulator. Currently, 3 options are available:  
-- rpi3 (currently unsupported, builds image for qemu emulated raspberrypi 3)
+Select target platform using the optional `BOARD` make variable. Currently available options based on board support:  
+- rpi3 (WIP, builds image for qemu emulated raspberrypi 3)
 - rpi4 (builds image for raspberrypi 4 SoC)
 - qemu => default
 
-To build the entire project with the kernel and userspace binaries, navigate to the root of this project
+To build the entire project with the kernel and userspace apps, at the top of the source tree
 ```
 make all
 ```
@@ -52,55 +39,45 @@ To mount and unmount the FAT16 disk image, you can use the mount and unmount tar
 make mount
 make unmount
 ```
-> **__Note:__** If the build fails upon any changes, the disk image might have to be unmounted with `make unmount` before `make all` can be run again  
+> **__Note:__** If the build fails upon any changes, the disk image may have to be unmounted with `make unmount` before `make all` can be run again  
 
 To clean build and output artifacts,
 ```
 make clean
 ```
-You can selectively build and clean artifacts by running make on specific targets and `BOARD`s only.    
-
-All build artifacts will be present in the **build** directory and output artifacts in the **bin** directory. A successful build should generate **kernel8.img** and **frostbyte** files under a board specific subdirectory in **bin**.
 
 ## Run and Test 
 ### Hardware
-Flash an SD card with a 64-bit [raspberrypi OS](https://www.raspberrypi.com/software/operating-systems/) image or use one flashed by default. Mount the boot parition and edit the **config.txt** file to add the following 2 lines:
+Flash an SD card with a 64-bit [raspberrypi OS](https://www.raspberrypi.com/software/operating-systems/) image. Mount the boot parition and edit the **config.txt** file to add the following 2 lines:
 ```
 dtoverlay=disable-bt
 enable_uart=1
 ```
+Replace the **kernel8.img** file in the mounted boot partition directory with frostbyte's. Insert the SD card into the board.  
 
-Replace the generated **kernel8.img** file in the mounted boot partition directory. Insert the SD card into the board.  
-
-Connect the board serially to your host machine (check out online on how you can connect the pi serially to your computer)
-Set the serial port device (mostly `/dev/ttyUSB0`) and baud rate to 115200 in your serial port communication program. Once the serial monitor is ready, boot up your board.  
+Connect the board serially to your host machine. Set the serial port device (mostly `/dev/ttyUSB0`) and baud rate to 115200 in your serial port communication program. Boot.  
 ### Emulator
-Replace `/path/to/kernel-image` in the following command with location of the `kernel8.img` file and run it to start a virtualized raspberry pi 3b instance running **frostbyte**.
+Start a raspberry pi 3 emulator running frostbyte  
 ```
 qemu-system-aarch64 \
     -m 1G \
     -machine raspi3b \
     -serial mon:stdio \
-    -kernel /path/to/kernel-image \
+    -kernel /path/to/kernel8.img \
     -nographic
 ```
 On older qemu versions, you may have to use machine type as `raspi3` instead of `raspi3b`. Run `qemu-system-aarch64 -machine help` if in doubt.   
 
-The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. You can mount the FAT16 disk image on host with `make mount` to add new users with password and other details in existing syntax in the **passwd** file.  
-Default user is `root` with default password as `toor` (root spelled backwards)  
+The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. Default user is *root* with default password *toor*  
 
 ![frostbyte_login](https://github.com/amoldhamale1105/frostbyte/assets/78597991/2eaca107-3d60-4f0f-8578-7fdc8d95a381)
 
-On successful login, a shell for current user is activated to interact with the system. You can log out by entering `exit` on the main shell (usually PID 2) or issuing a `kill` command with the main shell PID.  
+On successful login, a shell for current user is activated.  
 
 ![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/e4d57a8d-309c-4578-b8ab-7beaa79c6342)
 
-To shutdown the system, run `shutdown` on the frostbyte shell followed by Ctrl-A X (Press Ctrl+A, release it and then press X) to exit qemu monitor.
-
 ## Features and Capabilities
 This section may not be up to date with the current version of the kernel on master branch. However, it is highly recommended to read through it to get an idea of what **frostbyte** offers as its core functionality and extended features.  
-You can always learn more about any system by actually using it. Check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) for out of the box images of a specific version and associated features. It is recommended to use the latest stable version.  
-> **__Note:__** This section is a more of a user guide than a development guide. Custom user programs can be written for frostbyte similar to the programs developed for various commands. A separate development guide and API documentation will be created shortly with all the custom library functions and system calls. In the meantime, if you want to develop your own userspace app for frostbyte, check out the header `user/lib/flib.h` for library and system call prototypes and `user/test` and `user/sampleapp` as reference applications
 
 ### Features
 - Kernel runs at privileged [exception level](https://developer.arm.com/documentation/102412/0103/Privilege-and-Exception-levels/Exception-levels) 1 (EL1)
@@ -121,27 +98,20 @@ You can always learn more about any system by actually using it. Check out [Rele
 - Environment variables
 
 You can execute commands and programs on the shell by simply entering their name with or without extension. Commands entered on the shell are case insensitive. All executables on frostbyte need to have the `.bin` extension to be qualified as an executable. However, during execution, usage of the `.bin` extension is optional  
-For example, all of the following commands will result in `frostbyte` as output
+For example, all of the following commands will yield same output
 ```
 uname
 uname.bin
 UNAME.BIN
 uNaMe.BiN
 uNaMe
-```
-When you list files with `ls` command, their names will appear in uppercase. The kernel is currently capable of listing files from the FAT16 root directory only. Some directories are placed in the disk image only to test `ls` command's long listing output. Listing files inside subdirectories or changing working directory to a subdirectory is not supported as of the writing of this readme. 
-
-Programs can be run in the foreground or background. To run a program in background we follow the standard practice of appending an `&` at the end. The shell then prints the PID and job specification of the process it just pushed to background and gets ready for next user input. Background processes can be terminated, stopped or moved to the foreground. Apart from `ps`, you can monitor status of background processes with the `jobs` command  
-
-Programs running in the foreground can be terminated with a keyboard interrupt by pressing **Ctrl+C** or stopped with **Ctrl+Z** which will make the shell avaiable again for user input. The shell will print the PID and job specification of the stopped process which can be viewed with the `jobs` command. Unlike a terminated process, a stopped process can be resumed either in the foreground or background with the `fg` and `bg` commands. Apart from this, standard POSIX signals can be sent to any process using the `kill` command  
-
+``` 
 ### Commands
-The following POSIX commands are currently supported by **frostbyte** OS with options.  
+The following POSIX commands are currently supported by **frostbyte** with options.  
 ```
 sh, uname, ls, ps, jobs, fg, bg, export, echo, env, unset, cat, kill, exit, shutdown
 ```
-Usage and short description of any command can be viewed with the `-h` option with some exceptions like the `echo` command which simply prints passed arguments and evaluates environment variables or special expressions  
-For example, `uname -h` will print the following output to the terminal
+Usage and short description of any command can be viewed with the `-h` option. For instance, `uname -h` will yield the following output:
 ```
 Usage:	uname [OPTION]
 	Print certain system information.  With no OPTION, same as -s.
@@ -155,11 +125,11 @@ Usage:	uname [OPTION]
 ```
 
 ## Contributions
-At this stage, Frostbyte is a hobby project and you are welcome to use and contribute to it if you find it interesting enough.
+You can contribute to this project if you find it interesting enough.
 
 As a potential contributor you are welcome to 
-- Review pull requests and [open issues](https://github.com/amoldhamale1105/frostbyte/issues) and check if you can resolve any of them
-- Create [new issues](https://github.com/amoldhamale1105/frostbyte/issues/new) for bugs or feature requests so that either I or others in the community can get to it 
-- Raise [PR](https://github.com/amoldhamale1105/frostbyte/pulls)s to address existing issues, to fix potential bugs or make any improvements to existing source code
+- Review pull requests and address [open issues](https://github.com/amoldhamale1105/frostbyte/issues)
+- Create [new issues](https://github.com/amoldhamale1105/frostbyte/issues/new) for bugs or feature requests  
+- Raise [PR](https://github.com/amoldhamale1105/frostbyte/pulls)s to address existing issues, fix bugs, make improvements or add new features  
 
-I have added elaborate comments in the code to make it easily comprehensible and I'd like anyone who is contributing to continue that practice for newly added code. Do get in touch with me in case of any questions or suggestions amoldhamale1105@gmail.com
+Point of contact in case of any questions or suggestions: amoldhamale1105@gmail.com
