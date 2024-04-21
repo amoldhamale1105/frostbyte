@@ -56,6 +56,7 @@ int main(int argc, char** argv)
             opt++;
         }
     }
+    printf("\n");
     /* A negative PID will send signals to all processes in the system
        Negative PID with SIGTERM implies a shutdown request */
     if (kill(-1, SIGTERM) < 0){

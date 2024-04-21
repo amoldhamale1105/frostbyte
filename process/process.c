@@ -185,7 +185,7 @@ static void schedule(void)
         if (empty(&pc.wait_list)){
             if (process_table->signals & (1 << SIGTERM)){
                 shutdown = true;
-                printk("Shutting down...\n");
+                printk("Stopping kernel ...\n");
             }
         }
         new_process = process_table;
