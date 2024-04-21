@@ -36,6 +36,7 @@ int dummy_glob = 30;
 
 void kmain(void)
 {
+    printk("\nStarting kernel ...\n");
     init_uart();
     init_mem();
     init_fs();

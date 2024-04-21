@@ -107,7 +107,7 @@ static void init_user_process(void)
 {
     struct Process* process;
     const char* filename = "INIT.BIN";
-    
+    printk("Starting /%s as init process\n", filename);
     process = alloc_new_process();
     ASSERT(process != NULL);
 
@@ -119,6 +119,7 @@ static void init_user_process(void)
     /* Initialize signal handlers for the init process */
     init_handlers(process);
     push_back(&pc.ready_que, (struct Node*)process);
+    printk("Started init process.\n");
 }
 
 void init_process(void)
