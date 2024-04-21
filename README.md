@@ -1,9 +1,9 @@
 # Frostbyte
-A headless kernel with [POSIX](https://en.wikipedia.org/wiki/POSIX) interface for system call API (`user/lib/flib.h`) and shell commands  
+A baremetal lightweight kernel with [POSIX](https://en.wikipedia.org/wiki/POSIX) compliant system call API (`user/lib/flib.h`) and shell commands. Runs in headless mode.  
 ### Architecture 
-ARM64  
+ARM64
 ### Board support
-qemu, raspberrypi 3, raspberrypi 4  
+qemu, raspberrypi 3, raspberrypi 4
 
 ## Build from source
 For out of box images, check out [Releases](https://github.com/amoldhamale1105/frostbyte/releases) and skip ahead to the [Run and Test](https://github.com/amoldhamale1105/frostbyte#run-and-test) section
@@ -21,7 +21,7 @@ export PATH=$PATH:/path/to/toolchain/directory/gcc-arm-11.2-2022.02-x86_64-aarch
 ```
 
 ### Build
-Select target platform using the optional `BOARD` make variable. Currently available options based on board support:  
+Select target platform using the optional `BOARD` make variable. Currently available options based on [board support](https://github.com/amoldhamale1105/frostbyte/edit/master/README.md#board-support):  
 - rpi3 (WIP, builds image for qemu emulated raspberrypi 3)
 - rpi4 (builds image for raspberrypi 4 SoC)
 - qemu => default
@@ -70,11 +70,11 @@ On older qemu versions, you may have to use machine type as `raspi3` instead of 
 
 The OS boots up to a login prompt on the serial console. The login process parses the **passwd** file on the disk for registered users. Default user is *root* with default password *toor*  
 
-![frostbyte_login](https://github.com/amoldhamale1105/frostbyte/assets/78597991/2eaca107-3d60-4f0f-8578-7fdc8d95a381)
+![frostbyte_login](https://github.com/amoldhamale1105/frostbyte/assets/78597991/b6e38f13-7c5a-448b-b2d3-ae787ebeed37)
 
 On successful login, a shell for current user is activated.  
 
-![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/e4d57a8d-309c-4578-b8ab-7beaa79c6342)
+![frostbyte_shell](https://github.com/amoldhamale1105/frostbyte/assets/78597991/6a71443b-1e87-4047-8a35-1cec4d5748c7)
 
 ## Features and Capabilities
 This section may not be up to date with the current version of the kernel on master branch. However, it is highly recommended to read through it to get an idea of what **frostbyte** offers as its core functionality and extended features.  
