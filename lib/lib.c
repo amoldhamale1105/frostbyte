@@ -105,42 +105,31 @@ bool contains(const struct List *list, const struct Node *node)
     return false;
 }
 
-struct Node *remove_evt(struct List* list, struct Node** const head_prev, int event)
+struct Node *remove_evt(struct List* list, struct Node** const from, int event)
 {
-    struct Node* node = list->head;
+    struct Node* node = from && *from ? *from : list->head;
     struct Node* prev = NULL;
-
-    if (head_prev != NULL){
-        if (*head_prev != NULL){
-            node = (*head_prev)->next;
-            prev = *head_prev;
-        }
-    }
     
     while (node != NULL)
     {
         if (((struct Process*)node)->event == event){
-            if (prev == NULL){
-                if (list->tail == node)
-                    list->head = list->tail = NULL;
-                else
-                    list->head = node->next;
+            if (list->head == node){
+                list->head = node->next;
+                node->next = NULL;
             }
             else{
-                if (list->tail == node){
+                prev->next = node->next;
+                node->next = NULL;
+                if (list->tail == node)
                     list->tail = prev;
-                    prev->next = NULL;
-                }
-                else
-                    prev->next = node->next;
             }
             break;
         }
         prev = node;
         node = node->next;
     }
-    if (head_prev != NULL)
-        *head_prev = prev;
+    if (from != NULL)
+        *from = node ? node->next : NULL;
     
     return node;
 }

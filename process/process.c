@@ -400,20 +400,20 @@ void sleep(int event)
 
 void wake_up(int event)
 {
-    struct Process* process, *prev_node = NULL;
+    struct Process* process, *next_node = NULL;
 
     /* If an event occurs while a process is on the ready queue servicing a request, clear the event field */
     process = (struct Process*)find_evt(pc.ready_que.head, event);
     while (process != NULL)
     {
-        /* Preserve event when a process is about to be stopped */
+        /* Preserve event for a process about to be stopped */
         if (!(process->signals & (1 << SIGTSTP | 1 << SIGSTOP)))
             process->event = NONE;
         process = (struct Process*)find_evt((struct Node*)process->next, event);
     }
     
     /* remove first process waiting on event from the wait list */
-    process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&prev_node, event);
+    process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&next_node, event);
     /* Place it on the ready queue and check if any other processes waiting on the same event
        If they're sleeping, remove from wait list and place them on the ready queue as well */
     while (process != NULL)
@@ -421,7 +421,7 @@ void wake_up(int event)
         process->event = NONE;
         process->state = READY;
         push_back(&pc.ready_que, (struct Node*)process);
-        process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&prev_node, event);
+        process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&next_node, event);
     }
 }
 

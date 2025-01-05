@@ -73,7 +73,7 @@ void print_list(const struct List* list, const char* name);
 #endif
 
 /* Special functions for managing the process queues based on event occurence */
-struct Node* remove_evt(struct List* list, struct Node** head_prev, int event);
+struct Node* remove_evt(struct List* list, struct Node** const from, int event);
 struct Node* find_evt(const struct Node* head, int event);
 
 /* Map functions */
