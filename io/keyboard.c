@@ -62,10 +62,10 @@ void capture_key(void)
     switch (key)
     {
     case ASCII_CTRL_C:
-        kill(get_curr_process(), fg_proc->pid, SIGINT);
+        kill(get_process(fg_proc->ppid), fg_proc->pid, SIGINT);
         break;
     case ASCII_CTRL_Z:
-        kill(get_curr_process(), fg_proc->pid, SIGTSTP);
+        kill(get_process(fg_proc->ppid), fg_proc->pid, SIGTSTP);
         break;
     default:
         /* Flush to stdout if foreground process not using key input to prevent residual characters in key buffer */
@@ -78,7 +78,8 @@ void capture_key(void)
         break;
     }
     /* Push the key to circular buffer */
-    write_key_buffer(key);
+    if (fg_proc->event == KEYBOARD_INPUT)
+        write_key_buffer(key);
 }
 
 void notify_process(void)
