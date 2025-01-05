@@ -406,7 +406,9 @@ void wake_up(int event)
     process = (struct Process*)find_evt(pc.ready_que.head, event);
     while (process != NULL)
     {
-        process->event = NONE;
+        /* Preserve event when a process is about to be stopped */
+        if (!(process->signals & (1 << SIGTSTP | 1 << SIGSTOP)))
+            process->event = NONE;
         process = (struct Process*)find_evt((struct Node*)process->next, event);
     }
     
