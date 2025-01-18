@@ -245,6 +245,7 @@ static int64_t sys_switchpenv(int64_t* argv)
 
 static void sigproxy_restore(struct ContextFrame *ctx)
 {
+    struct Process* process = get_curr_process();
     int64_t* sp0 = (int64_t*)ctx->sp0;
     /* Restore the overwritten values in registers x1 and x8, and previous EL0 program counter */
     ctx->x1 = sp0[0];
@@ -252,6 +253,9 @@ static void sigproxy_restore(struct ContextFrame *ctx)
     ctx->elr = sp0[2];
     /* Reclaim space on the stack used to save proxy handler and proxy restore arguments */
     ctx->sp0 += 24;
+    /* Restart the interrupted syscall */
+    if (process->event != NONE)
+        system_call(ctx);
 }
 
 void init_system_call(void)

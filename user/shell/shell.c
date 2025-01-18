@@ -93,8 +93,14 @@ int read_cmd(char* buf, char* echo_buf)
     while (1)
     {
         cmd_ch = getchar();
-        if (interrupted)
-            break;
+        if (interrupted){
+            interrupted = false;
+            /* Flush the command buffer and reset cursor position */
+            memset(buf, 0, buf_size);
+            memset(echo_buf, 0, buf_size);
+            buf_size = 0;
+            cursor = 0;
+        }
 
         /* Stop reading and exit when enter key (carriage return) is pressed by user */
         if (cmd_ch == '\r'){

@@ -268,9 +268,6 @@ void move_to_fore(struct Process* process)
         return;
     
     process->daemon = false;
-    /* Convert input event since the process is now moving to the foreground */
-    if (process->event == DAEMON_INPUT)
-        process->event = KEYBOARD_INPUT;
     if (process->state != STOPPED){ /* Stopped processes won't resume without a continue signal */
         if (process->state == SLEEP){
             remove(&pc.wait_list, (struct Node*)process);
@@ -392,25 +389,11 @@ void sleep(int event)
     push_back(&pc.wait_list, (struct Node*)process);
     /* Call the scheduler to replace the current process (which just slept) with other process on the ready queue */
     schedule();
-    /* If the process was awakened by the kernel to service an important request, put it back to sleep
-       An organically awakened process on occurence of specific event will have the event field reset to NONE */
-    if (process->event != NONE)
-        sleep(process->event);
 }
 
 void wake_up(int event)
 {
     struct Process* process, *next_node = NULL;
-
-    /* If an event occurs while a process is on the ready queue servicing a request, clear the event field */
-    process = (struct Process*)find_evt(pc.ready_que.head, event);
-    while (process != NULL)
-    {
-        /* Preserve event for a process about to be stopped */
-        if (!(process->signals & (1 << SIGTSTP | 1 << SIGSTOP)))
-            process->event = NONE;
-        process = (struct Process*)find_evt((struct Node*)process->next, event);
-    }
     
     /* remove first process waiting on event from the wait list */
     process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&next_node, event);
@@ -418,9 +401,11 @@ void wake_up(int event)
        If they're sleeping, remove from wait list and place them on the ready queue as well */
     while (process != NULL)
     {
-        process->event = NONE;
-        process->state = READY;
-        push_back(&pc.ready_que, (struct Node*)process);
+        if (!contains(&pc.ready_que, (struct Node*)process)){
+            process->event = NONE;
+            process->state = READY;
+            push_back(&pc.ready_que, (struct Node*)process);
+        }
         process = (struct Process*)remove_evt(&pc.wait_list, (struct Node**)&next_node, event);
     }
 }

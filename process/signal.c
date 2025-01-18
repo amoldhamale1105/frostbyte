@@ -40,11 +40,12 @@ void check_pending_signals(struct Process* process)
             if (process->state == UNUSED || process->state == KILLED)
                 break;
             if (process->signals & (1 << i)){
+                bool user_handler = false;
                 if (process->state == STOPPED && !(i == SIGKILL || i == SIGCONT))
                     continue;
                 if (process->handlers[i] != NULL){
                     /* Custom handlers should be invoked in user mode only which can be deduced from the handler address */
-                    if (!((uint64_t)(process->handlers[i]) & KERNEL_BASE)){
+                    if (user_handler = !((uint64_t)(process->handlers[i]) & KERNEL_BASE)){
                         switch_vm(process->page_map);
                         int64_t el0_addr = process->reg_context->elr;
                         /* Enable the proxy handler to run on eret which will invoke custom handler and restore previous context */
@@ -57,6 +58,11 @@ void check_pending_signals(struct Process* process)
                         sp0[0] = i;
                         sp0[1] = (int64_t)process->handlers[i];
                         sp0[2] = el0_addr;
+                        /* A SIGCONT should always cause a process to be continued regardless of whether it is caught or ignored */
+                        if (i == SIGCONT && !target_proc){
+                            target_proc = process;
+                            def_handler_entry(i);
+                        }
                         /* Reset handler in process table entry to default */
                         process->handlers[i] = def_handlers[i];
                     }
@@ -64,15 +70,16 @@ void check_pending_signals(struct Process* process)
                         target_proc = process;
                         process->handlers[i](i);
                     }
-                    /* A SIGCONT should always cause a process to be continued regardless of whether it is caught or ignored */
-                    if (i == SIGCONT && !target_proc){
-                        target_proc = process;
-                        def_handler_entry(i);
-                    }
                     target_proc = NULL;
                 }
                 /* Clear the signal by XORing specific bit, now that it is addressed */
                 process->signals ^= (1 << i);
+                /* Restore process state if it was interrupted during a syscall */
+                if (contains(&pc->ready_que, (struct Node*)process) && (process->event != NONE && !user_handler)){
+                    remove(&pc->ready_que, (struct Node*)process);
+                    process->state = SLEEP;
+                    push_back(&pc->wait_list, (struct Node*)process);
+                }
             }
         }
     }
@@ -187,6 +194,9 @@ void def_handler_entry(int signal)
                 push_back(&pc->ready_que, (struct Node*)target_proc);
             }
             else{
+                /* Convert input event since the process is now moving to the foreground */
+                if (target_proc->event == DAEMON_INPUT)
+                    target_proc->event = KEYBOARD_INPUT;
                 target_proc->state = SLEEP;
                 push_back(&pc->wait_list, (struct Node*)target_proc);
             }

@@ -20,11 +20,15 @@
 #include "signal.h"
 #include <sys/wait.h>
 
+char* username = NULL;
+char prompt_suffix = '$';
+
 void sighandler(int signum)
 {
     if (signum == SIGINT){
         printf("^C\n");
         interrupted = true;
+        printf("%s@%s:~%c ", username, stringify_value(NAME), prompt_suffix);
         /* Re-register handler since kernel resets it to default after first invokation */
         signal(SIGINT, sighandler);
     }
@@ -37,8 +41,7 @@ int main(int argc, char** argv)
     int cmd_size = 0;
     int wstatus;
 
-    char prompt_suffix = '$';
-    char* username = getenv("USER");
+    username = getenv("USER");
     if (username && strlen(username) == 4 && memcmp(username, "root", 4) == 0)
         prompt_suffix = '#';
 
@@ -52,10 +55,6 @@ int main(int argc, char** argv)
         memset(cmd_buf, 0, sizeof(cmd_buf));
         memset(echo_buf, 0, sizeof(echo_buf));
         cmd_size = read_cmd(cmd_buf, echo_buf);
-        if (interrupted){
-            interrupted = false;
-            continue;
-        }
         
         if (cmd_size > 0){
             int cmd_pos, arg_count;
@@ -103,29 +102,31 @@ int main(int argc, char** argv)
                         continue;
                     }
                     int wpid = waitpid(cmd_pid, &wstatus, WUNTRACED);
-                    if (WIFSIGNALED(wstatus)){
-                        switch (WTERMSIG(wstatus))
-                        {
-                        case SIGINT:
-                            printf("\n");
-                            break;
-                        case SIGABRT:
-                            printf("Aborted\n");
-                            break;
-                        case SIGKILL:
-                            printf("Killed\n");
-                            break;
-                        case SIGTERM:
-                            printf("Terminated\n");
-                        default:
-                            break;
+                    if (wpid != -1){
+                        if (WIFSIGNALED(wstatus)){
+                            switch (WTERMSIG(wstatus))
+                            {
+                            case SIGINT:
+                                printf("\n");
+                                break;
+                            case SIGABRT:
+                                printf("Aborted\n");
+                                break;
+                            case SIGKILL:
+                                printf("Killed\n");
+                                break;
+                            case SIGTERM:
+                                printf("Terminated\n");
+                            default:
+                                break;
+                            }
                         }
-                    }
-                    else if (WIFSTOPPED(wstatus)){
-                        int job_spec;
-                        char procname[MAX_FILENAME_BYTES+1];
-                        get_proc_data(wpid, NULL, NULL, &job_spec, procname, NULL);
-                        printf("^Z\n[%d]  Stopped\t%s\n", job_spec, procname);
+                        else if (WIFSTOPPED(wstatus)){
+                            int job_spec;
+                            char procname[MAX_FILENAME_BYTES+1];
+                            get_proc_data(wpid, NULL, NULL, &job_spec, procname, NULL);
+                            printf("^Z\n[%d]  Stopped\t%s\n", job_spec, procname);
+                        }
                     }
                 }
             }
