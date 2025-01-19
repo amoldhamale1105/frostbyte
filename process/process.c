@@ -269,6 +269,9 @@ void move_to_fore(struct Process* process)
     
     process->daemon = false;
     if (process->state != STOPPED){ /* Stopped processes won't resume without a continue signal */
+        /* Convert input event since the process is now moving to the foreground */
+        if (process->event == DAEMON_INPUT)
+            process->event = KEYBOARD_INPUT;
         if (process->state == SLEEP){
             remove(&pc.wait_list, (struct Node*)process);
             process->state = READY;

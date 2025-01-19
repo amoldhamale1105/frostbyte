@@ -194,8 +194,8 @@ void def_handler_entry(int signal)
                 push_back(&pc->ready_que, (struct Node*)target_proc);
             }
             else{
-                /* Convert input event since the process is now moving to the foreground */
-                if (target_proc->event == DAEMON_INPUT)
+                /* Convert input event if foreground process */
+                if (!target_proc->daemon && target_proc->event == DAEMON_INPUT)
                     target_proc->event = KEYBOARD_INPUT;
                 target_proc->state = SLEEP;
                 push_back(&pc->wait_list, (struct Node*)target_proc);
