@@ -84,6 +84,7 @@ int main(int argc, char** argv)
                 if (!args[0])
                     args[0] = echo_buf+cmd_pos;
                 args[1] = echo_buf+cmd_pos;
+                args[2] = NULL;
             }
             int fd = open_file(cmd_buf+cmd_pos);
             if (fd < 0)

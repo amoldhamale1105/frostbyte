@@ -312,8 +312,11 @@ int get_proc_data(int pid, int *ppid, int *state, int* job_spec, char *name, cha
                 *state = process_table[i].state;
             if (job_spec != NULL)
                 *job_spec = process_table[i].job_spec;
-            if (name != NULL)
-                memcpy(name, process_table[i].name, strlen(process_table[i].name));
+            if (name != NULL){
+                int namelen = strlen(process_table[i].name);
+                memcpy(name, process_table[i].name, namelen);
+                name[namelen] = 0;
+            }
             /* Retrieve the program arguments from the args member */
             char* arg = (char*)process_table[i].args;
             int arg_len;
