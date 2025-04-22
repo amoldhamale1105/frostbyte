@@ -28,11 +28,11 @@ else
 endif
 export LDFLAGS := -nostdlib
 
-SRC_DIR := .
+SRC_DIR := $(shell pwd)
 INCLUDES := -I./$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/include -I./lib/gcc/$(TARGET_ARCH)-$(VENDOR)-$(TARGET_OS)/$(GCC_VERSION)/include -I.
 BUILD_DIR := ./build
 OUTPUT_DIR := ./bin/$(BOARD)
-export MOUNT_POINT := $(PWD)/build/fdisk
+export MOUNT_POINT := $(SRC_DIR)/build/fdisk
 export KERNEL_NAME := frostbyte
 export KERNEL_VERSION := 2.4.1
 export FAT16_DISK := $(KERNEL_NAME)_disk.img

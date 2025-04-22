@@ -88,7 +88,7 @@ el1_entry:
     ldr x0, =vector_table
     msr vbar_el1, x0
 
-    # Set the stack pointer to virtual address of kernel space + 0x8000 to allow it to grow downwards from that point
+    # Set the stack pointer to virtual address of kernel space + 0x80000 to allow it to grow downwards from that point
     mov x0, #0xffff000000000000
     add sp, sp, x0
 

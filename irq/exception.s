@@ -20,7 +20,7 @@
 .macro kernel_entry
     # Allocate space for 36 registers on the stack for interrupted context. We have total of 31 GPRs, 1 stack pointer register and 4 system registers
     sub sp, sp, #(36*8)
-    # Use store pair instruction to save all 32 GPRs on the stack, 2 at a time
+    # Use store pair instruction to save all 31 GPRs on the stack, 2 at a time
     stp x0, x1, [sp]
     # Move 16 bytes up in the stack to store the next pair (pair of 64 bit registers = 16 bytes) 
     stp x2, x3, [sp, #(16*1)]
